@@ -12,5 +12,8 @@ public enum ConfigValue {
      * Specify the server port, defaults to 8000
      */
     SERVER_PORT,
-
+    /**
+     * The context directory of Server.
+     */
+    SERVER_WORKING_DIRECTORY,
 }
