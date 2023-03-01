@@ -1,7 +1,6 @@
 package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.support.RequestHandlerSharedData;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,11 +13,11 @@ import java.io.OutputStream;
 public class RequestProcessor implements RequestHandler {
     @Override
     public void init() {
-
+        System.out.println("Calling init of RequestProcessor");
     }
 
     @Override
-    public boolean handleRequest(InputStream inputStream, OutputStream responseStream, RequestHandlerSharedData sharedData) throws IOException {
+    public boolean handleRequest(InputStream inputStream, OutputStream responseStream, RequestHandlerShareData sharedData) throws IOException {
         return false;
     }
 

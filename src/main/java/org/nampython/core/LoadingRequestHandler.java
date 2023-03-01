@@ -11,6 +11,9 @@ import java.io.File;
 import java.net.URL;
 import java.util.*;
 
+/**
+ *
+ */
 @Service
 public class LoadingRequestHandler implements InitLoadingRequest {
     private final LinkedList<RequestHandler> requestHandlers;
@@ -29,9 +32,10 @@ public class LoadingRequestHandler implements InitLoadingRequest {
      */
     @Override
     public void loadRequestHandlers(List<String> requestHandlerFileNames, Map<File, URL> libURLs, Map<File, URL> apiURLs) {
-        Collection<ServiceDetails> implementations = IocCenter.getServerDependencyContainer().getImplementations(RequestHandler.class);
+        Collection<ServiceDetails> implementOfRequestHandler = IocCenter.getServerDependencyContainer().getImplementations(RequestHandler.class);
         List<RequestHandler> requestHandlerInstances = new ArrayList<>();
-        for (ServiceDetails implementation : implementations) {
+
+        for (ServiceDetails implementation : implementOfRequestHandler) {
             RequestHandler requestHandlerInstance = (RequestHandler) implementation.getInstance();
             requestHandlerInstances.add(requestHandlerInstance);
         }
