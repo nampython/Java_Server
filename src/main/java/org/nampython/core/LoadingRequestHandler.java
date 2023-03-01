@@ -43,6 +43,7 @@ public class LoadingRequestHandler implements InitLoadingRequest {
         for (RequestHandler requestHandlerInstance : requestHandlerInstances) {
             requestHandlerInstance.init();
         }
+        this.requestHandlers.addAll(requestHandlerInstances);
     }
 
     @Override

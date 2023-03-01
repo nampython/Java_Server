@@ -19,7 +19,7 @@ public class ConfigHandler implements ConfigCenter {
     private void init() {
 //        try {
 //            this.loadRequestHandlerConfig();
-            this.initDefaultConfigParams();
+        this.initDefaultConfigParams();
 //            this.initConfigParams();
 //            this.applyEnvironmentVariables();
 //        } catch (IOException e) {
@@ -34,6 +34,11 @@ public class ConfigHandler implements ConfigCenter {
         this.configParameters = new HashMap<>();
         this.configParameters.put(ConfigValue.SERVER_PORT.name(), CorePool.EMPTY_PORT);
 
+        this.configParameters.put(ConfigValue.RESOURCE_HANDLER_ORDER.name(), 1);
+        this.configParameters.put(ConfigValue.DISPATCHER_ORDER.name(), 2);
+        this.configParameters.put(ConfigValue.FALLBACK_HANDLER_ORDER.name(), Integer.MAX_VALUE);
+        this.configParameters.put(ConfigValue.REQUEST_PROCESSOR_ORDER.name(), Integer.MIN_VALUE);
+
     }
 
     private void initConfigParams() {
@@ -41,11 +46,10 @@ public class ConfigHandler implements ConfigCenter {
     }
 
     /**
-     *
      * @param configKey
      * @param type
-     * @return
      * @param <T>
+     * @return
      */
     @Override
     public <T> T getConfigValue(Enum<? extends ConfigValue> configKey, Class<T> type) {
@@ -54,11 +58,10 @@ public class ConfigHandler implements ConfigCenter {
 
 
     /**
-     *
      * @param paramName
      * @param type
-     * @return
      * @param <T>
+     * @return
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -67,7 +70,6 @@ public class ConfigHandler implements ConfigCenter {
     }
 
     /**
-     *
      * @param configKey
      * @param configValue
      */
@@ -77,7 +79,6 @@ public class ConfigHandler implements ConfigCenter {
     }
 
     /**
-     *
      * @param name
      * @param value
      */

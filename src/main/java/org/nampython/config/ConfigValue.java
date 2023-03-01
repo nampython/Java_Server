@@ -16,4 +16,20 @@ public enum ConfigValue {
      * The context directory of Server.
      */
     SERVER_WORKING_DIRECTORY,
+    /**
+     *
+     */
+    RESOURCE_HANDLER_ORDER,
+    /**
+     *
+     */
+    DISPATCHER_ORDER,
+    /**
+     *
+     */
+    REQUEST_PROCESSOR_ORDER,
+    /**
+     *
+     */
+    FALLBACK_HANDLER_ORDER,
 }
