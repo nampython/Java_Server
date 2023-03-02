@@ -29,7 +29,7 @@ public class ResourceHandler implements RequestHandler {
 
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream responseStream, RequestHandlerShareData sharedData) throws IOException {
-        System.out.println("Calling handleRequest method of " + ResourceHandler.class.getSimpleName());
+        System.out.println("Calling handleRequest method of " + ResourceHandler.class.getSimpleName() + this.configCenter.getConfigValue(ConfigValue.RESOURCE_HANDLER_ORDER.name(), int.class));
         return false;
     }
 

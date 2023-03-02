@@ -37,33 +37,11 @@ public class ServerImplement implements Server {
         while (true) {
             final Socket client = serverSocket.accept();
             client.setSoTimeout(SOCKET_TIMEOUT_MILLISECONDS);
-            final Thread thread = new Thread(
-                    () -> {
-                        final List<RequestHandler> requestHandlers = this.initLoadingRequest.getRequestHandlers();
-                        final List<RequestDestroyHandler> requestDestroyHandlers = this.initLoadingRequest.getRequestDestroyHandlers();
-                        final RequestHandlerShareData requestHandlerShareData = new RequestHandlerShareData();
-
-                        for (RequestHandler requestHandler : requestHandlers) {
-                            try {
-                                boolean requestHandled = requestHandler.handleRequest(client.getInputStream(), client.getOutputStream(), requestHandlerShareData);
-                                if (requestHandled) {
-                                    break;
-                                }
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        for (RequestDestroyHandler requestDestroyHandler : requestDestroyHandlers) {
-                            requestDestroyHandler.destroy(requestHandlerShareData);
-                        }
-                        try {
-                            client.close();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-            );
+            final Thread thread = new Thread(new ConnectionHandler(
+                    client,
+                    this.initLoadingRequest.getRequestHandlers(),
+                    this.initLoadingRequest.getRequestDestroyHandlers()
+            ));
             thread.start();
         }
     }
