@@ -1,5 +1,6 @@
 package org.nampython.base;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,23 @@ public class HttpRequest {
         this.bodyParametersAsList = new HashMap<>();
         this.cookies = new HashMap<>();
     }
+
+    public String getContentType() {
+        return this.getHeader("Content-Type");
+    }
+
+    public String getHeader(String headerName) {
+        return this.headers.get(headerName);
+    }
+
+    public void addBodyParameter(String parameter, String value) {
+        this.bodyParameters.put(parameter, value);
+        if (!this.bodyParametersAsList.containsKey(parameter)) {
+            this.bodyParametersAsList.put(parameter, new ArrayList<>());
+        }
+        this.bodyParametersAsList.get(parameter).add(value);
+    }
+
 
     public Map<String, HttpCookie> getCookies() {
         return cookies;
@@ -77,6 +95,4 @@ public class HttpRequest {
     public Map<String, List<String>> getBodyParametersAsList() {
         return bodyParametersAsList;
     }
-
-
 }

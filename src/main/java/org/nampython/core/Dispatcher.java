@@ -26,7 +26,6 @@ public class Dispatcher implements RequestHandler {
 
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream responseStream, RequestHandlerShareData sharedData) throws IOException {
-        System.out.println("Calling handleRequest method of " + Dispatcher.class.getSimpleName() + configCenter.getConfigValue(ConfigValue.DISPATCHER_ORDER, int.class));
         return false;
     }
 

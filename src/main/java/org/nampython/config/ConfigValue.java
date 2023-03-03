@@ -32,4 +32,8 @@ public enum ConfigValue {
      *
      */
     FALLBACK_HANDLER_ORDER,
+    /**
+     * Setting to false will result in javache not logging unhandled exceptions.
+     */
+    PRINT_EXCEPTIONS,
 }

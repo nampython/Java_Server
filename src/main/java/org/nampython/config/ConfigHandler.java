@@ -33,11 +33,12 @@ public class ConfigHandler implements ConfigCenter {
     private void initDefaultConfigParams() {
         this.configParameters = new HashMap<>();
         this.configParameters.put(ConfigValue.SERVER_PORT.name(), CorePool.EMPTY_PORT);
-
+        this.configParameters.put(ConfigValue.MAX_REQUEST_SIZE.name(), Integer.MAX_VALUE);
         this.configParameters.put(ConfigValue.RESOURCE_HANDLER_ORDER.name(), 1);
         this.configParameters.put(ConfigValue.DISPATCHER_ORDER.name(), 2);
         this.configParameters.put(ConfigValue.FALLBACK_HANDLER_ORDER.name(), Integer.MAX_VALUE);
         this.configParameters.put(ConfigValue.REQUEST_PROCESSOR_ORDER.name(), Integer.MIN_VALUE);
+        this.configParameters.put(ConfigValue.PRINT_EXCEPTIONS.name(), true);
 
     }
 

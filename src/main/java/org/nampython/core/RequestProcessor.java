@@ -4,6 +4,7 @@ import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
 import org.nampython.base.HttpCookie;
 import org.nampython.base.HttpRequest;
+import org.nampython.base.HttpResponse;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
 
@@ -13,6 +14,7 @@ import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,10 +29,7 @@ public class RequestProcessor implements RequestHandler {
     public static final String TEXT_PLAIN;
     public static final String MULTIPART_FORM_DATA;
     public static final String RAW_BODY_PARAM_NAME;
-
     private static final String REQUEST_TOO_BIG_MSG = "Request too big.";
-
-
     static {
         CONTENT_LENGTH = "Content-Length";
         CACHE_CONTROL_HEADER_NAME = "Cache-Control";
@@ -40,13 +39,18 @@ public class RequestProcessor implements RequestHandler {
         RAW_BODY_PARAM_NAME = "rawBodyText";
     }
 
+    private final Map<FormDataParserProvider, FormDataParser> instanceProviderMap = new HashMap<>();
+    private final List<FormDataParser> formDataParsers;
     private final ConfigCenter configCenter;
+    private final ErrorHandling errorHandling;
     private final int maxRequestSize;
 
     @Autowired
-    public RequestProcessor(ConfigCenter configCenter) {
+    public RequestProcessor(List<FormDataParser> formDataParsers, ConfigCenter configCenter, ErrorHandling errorHandling) {
+        this.formDataParsers = formDataParsers;
         this.configCenter = configCenter;
         this.maxRequestSize = configCenter.getConfigValue(ConfigValue.MAX_REQUEST_SIZE, int.class);
+        this.errorHandling = errorHandling;
     }
 
     /**
@@ -54,7 +58,7 @@ public class RequestProcessor implements RequestHandler {
      */
     @Override
     public void init() {
-        System.out.println("Calling init of RequestProcessor");
+        //NOTHING HERE
     }
 
     /**
@@ -66,13 +70,36 @@ public class RequestProcessor implements RequestHandler {
      */
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
-        System.out.println("Calling handleRequest method of " + RequestProcessor.class.getSimpleName() + this.configCenter.getConfigValue(ConfigValue.REQUEST_PROCESSOR_ORDER.name(), int.class));
         try {
             final HttpRequest httpRequest = this.parseHttpRequest(inputStream);
+            final HttpResponse httpResponse = new HttpResponse();
+            sharedData.addObject(RequestHandlerShareData.HTTP_REQUEST, httpRequest);
+            sharedData.addObject(RequestHandlerShareData.HTTP_RESPONSE, httpResponse);
+        } catch (RequestTooBigException ex) {
+            this.disposeInputStream(ex.getContentLength(), inputStream);
+            return this.errorHandling.handleRequestTooBig(outputStream, ex, new HttpResponse());
         } catch (Exception e) {
-            //
+            return this.errorHandling.handleException(outputStream, e, new HttpResponse(), HttpResponse.HttpStatus.BAD_REQUEST);
         }
         return false;
+    }
+
+    /**
+     * The purpose of this method is to read the input stream before closing it
+     * otherwise the TCP connection will not be closed properly.
+     */
+    private void disposeInputStream(int length, InputStream inputStream) throws IOException {
+        byte[] buffer = new byte[0];
+        int leftToRead = length;
+        int bytesRead = Math.min(2048, inputStream.available());
+
+        while (leftToRead > 0) {
+            buffer = inputStream.readNBytes(bytesRead);
+            leftToRead -= bytesRead;
+            bytesRead = Math.min(2048, inputStream.available());
+        }
+
+        buffer = null;
     }
 
     /**
@@ -92,13 +119,12 @@ public class RequestProcessor implements RequestHandler {
             if (httpRequest.getContentLength() > this.maxRequestSize) {
                 throw new RequestTooBigException(REQUEST_TOO_BIG_MSG, httpRequest.getContentLength());
             } else {
-
+                final String contentType = httpRequest.getContentType();
+                final FormDataParserProvider formDataParserProvider = FormDataParserProvider.findByContentType(contentType);
+                this.getParser(formDataParserProvider).parseBodyParams(inputStream, httpRequest);
             }
-
-
-
+            this.trimRequestPath(httpRequest);
             return httpRequest;
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -106,6 +132,15 @@ public class RequestProcessor implements RequestHandler {
 
     /**
      *
+     * @param request
+     */
+    private void trimRequestPath(HttpRequest request) {
+        request.setRequestURL(
+                request.getRequestURL().replaceAll("\\.{2,}\\/?", "")
+        );
+    }
+
+    /**
      * @param inputStream
      * @param requestMetadata
      */
@@ -179,6 +214,45 @@ public class RequestProcessor implements RequestHandler {
     }
 
 
+    /**
+     * @param provider
+     * @return
+     */
+    private FormDataParser getParser(FormDataParserProvider provider) {
+        if (this.instanceProviderMap.containsKey(provider)) {
+            return this.instanceProviderMap.get(provider);
+        }
+
+        final FormDataParser formDataParser = this.formDataParsers.stream()
+                .filter(parser -> provider.getParserType().isAssignableFrom(parser.getClass()))
+                .findFirst()
+                .orElseThrow(() -> new CannotParseRequestException(String.format(
+                        "Could not find %s form data parser", provider
+                )));
+        this.instanceProviderMap.put(provider, formDataParser);
+        return formDataParser;
+//        FormDataParser formDataParser = null;
+//        if (this.instanceProviderMap.containsKey(provider)) {
+//            return this.instanceProviderMap.get(provider);
+//        } else {
+//            for (FormDataParser dataParser : this.formDataParsers) {
+//                if (provider.getParserType().isAssignableFrom(dataParser.getClass())) {
+//                    formDataParser = dataParser;
+//                    break;
+//                } else {
+//                    throw new CannotParseRequestException(String.format(
+//                            "Could not find %s form data parser", provider
+//                    ));
+//                }
+//            }
+//        }
+    }
+
+    /**
+     *
+     * @param str
+     * @return
+     */
     private static String decode(String str) {
         return URLDecoder.decode(str, StandardCharsets.UTF_8);
     }
@@ -267,5 +341,42 @@ public class RequestProcessor implements RequestHandler {
     @Override
     public int order() {
         return configCenter.getConfigValue(ConfigValue.REQUEST_PROCESSOR_ORDER, int.class);
+    }
+
+    /**
+     *
+     */
+    enum FormDataParserProvider {
+        DEFAULT(TEXT_PLAIN, FormDataParserDefault.class),
+        MULTIPART(MULTIPART_FORM_DATA, FormDataParserDefault.class);
+        private final String contentType;
+        private final Class<? extends FormDataParser> parserType;
+
+        FormDataParserProvider(String contentType, Class<? extends FormDataParser> parserType) {
+            this.contentType = contentType;
+            this.parserType = parserType;
+        }
+
+        /**
+         * @param contentType
+         * @return
+         */
+        public static FormDataParserProvider findByContentType(String contentType) {
+            if (contentType != null) {
+                for (FormDataParserProvider value : values()) {
+                    if (value.contentType.startsWith(contentType)) {
+                        return value;
+                    }
+                }
+            }
+            return DEFAULT;
+        }
+
+        /**
+         * @return
+         */
+        public Class<? extends FormDataParser> getParserType() {
+            return parserType;
+        }
     }
 }

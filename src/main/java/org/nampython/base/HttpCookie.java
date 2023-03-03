@@ -10,6 +10,15 @@ public class HttpCookie {
         this.setValue(value);
     }
 
+    public String toRFCString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append(this.getName()).append("=").append(this.getValue());
+        if (this.getPath() != null) {
+            sb.append("; path=").append(this.getPath());
+        }
+
+        return sb.toString();
+    }
     /**
      *
      * @return
