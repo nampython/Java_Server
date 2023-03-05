@@ -1,5 +1,6 @@
 package org.nampython.base;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,10 @@ public class HttpResponse {
         this.cookies = new HashMap<>();
     }
 
+    public String getResponse() {
+        return this.getHeaderString() + new String(this.getContent(), StandardCharsets.UTF_8);
+    }
+
     public Map<String, String> getHeaders() {
         return this.headers;
     }
@@ -37,6 +42,9 @@ public class HttpResponse {
         this.content = content;
     }
 
+    public void setContent(String content) {
+        this.content = content.getBytes(StandardCharsets.UTF_8);
+    }
     public void setStatusCode(HttpStatus statusCode) {
         this.statusCode = statusCode;
     }
@@ -89,6 +97,10 @@ public class HttpResponse {
         }
     }
 
+    public void addHeader(String header, String value) {
+        this.headers.put(header, value);
+    }
+
     public byte[] getBytes() {
         final byte[] headers = this.getHeaderString().getBytes();
         final byte[] result = new byte[headers.length + this.getContent().length];
@@ -97,6 +109,14 @@ public class HttpResponse {
         System.arraycopy(this.getContent(), 0, result, headers.length, this.getContent().length);
 
         return result;
+    }
+
+    public void addCookie(HttpCookie cookie) {
+        this.cookies.put(cookie.getName(), cookie);
+    }
+
+    public void addCookie(String name, String value) {
+        this.cookies.put(name, new HttpCookie(name, value));
     }
 
     public enum HttpStatus {

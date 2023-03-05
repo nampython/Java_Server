@@ -1,0 +1,33 @@
+package org.nampython.core.center;
+
+import com.cyecize.ioc.annotations.Service;
+import org.nampython.base.HttpResponse;
+import org.nampython.core.RequestHandler;
+import org.nampython.core.RequestHandlerShareData;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+@Service
+public class FallbackHandler implements RequestHandler {
+
+    @Override
+    public void init() {
+
+    }
+
+    @Override
+    public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
+        final HttpResponse response = sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class);
+        response.setStatusCode(HttpResponse.HttpStatus.NOT_FOUND);
+        response.setContent("The resource you are looking for could not be found!");
+        outputStream.write(response.getBytes());
+        return true;
+    }
+
+    @Override
+    public int order() {
+        return Integer.MAX_VALUE;
+    }
+}

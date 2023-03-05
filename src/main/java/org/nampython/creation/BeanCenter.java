@@ -3,9 +3,9 @@ package org.nampython.creation;
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Bean;
 import com.cyecize.ioc.annotations.PostConstruct;
+import com.cyecize.ioc.constants.Constants;
 import org.nampython.config.*;
 import org.nampython.support.JarFileUnzip;
-import org.nampython.support.JarFileUnzipImplement;
 import org.nampython.type.ServerComponent;
 
 import java.io.File;
@@ -49,11 +49,11 @@ public class BeanCenter {
     public ConfigCenter configHandler() {
         final ConfigCenter configCenter = new AdditionalConfig(configs);
         int port;
-        if (configCenter.getConfigValue(ConfigValue.SERVER_PORT, int.class) == CorePool.EMPTY_PORT) {
+        if (configCenter.getConfigValue(ConfigValue.SERVER_PORT, int.class) == ConstantsPool.EMPTY_PORT) {
             if (BeanCenter.port != null) {
                 port = BeanCenter.port;
             } else {
-                port = CorePool.DEFAULT_SERVER_PORT;
+                port = ConstantsPool.DEFAULT_SERVER_PORT;
             }
             configCenter.addConfigParam(ConfigValue.SERVER_PORT, port);
         }

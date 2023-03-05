@@ -8,9 +8,9 @@ import java.util.Map;
 public class HttpRequest {
     private String method;
     private String requestURL;
-//    private HttpSession session;
+    private HttpSession session;
     private int contentLength;
-//    private final List<MultipartFile> multipartFiles;
+    private final List<MultipartFile> multipartFiles;
     private final Map<String, String> headers;
     private final Map<String, String> queryParameters;
     private final Map<String, String> bodyParameters;
@@ -23,6 +23,47 @@ public class HttpRequest {
         this.bodyParameters = new HashMap<>();
         this.bodyParametersAsList = new HashMap<>();
         this.cookies = new HashMap<>();
+        this.multipartFiles = new ArrayList<>();
+    }
+
+    public List<MultipartFile> getMultipartFiles() {
+        return multipartFiles;
+    }
+
+    public void setSession(HttpSession session) {
+        this.session = session;
+    }
+
+    public HttpSession getSession() {
+        return this.session;
+    }
+    public String getBodyParam(String paramName) {
+        return this.bodyParameters.get(paramName);
+    }
+    public boolean isResource() {
+        return this.getRequestURL().contains(".");
+    }
+    public String getHost() {
+        return this.getHeaders().getOrDefault("Host", "");
+    }
+    public void addMultipartFile(MultipartFile multipartFile) {
+        this.multipartFiles.add(multipartFile);
+    }
+    public String get(String paramName) {
+        String param = this.getQueryParam(paramName);
+
+        if (param == null) {
+            param = this.getBodyParam(paramName);
+        }
+
+        return param;
+    }
+
+    public String getQueryParam(String paramName) {
+        return this.queryParameters.get(paramName);
+    }
+    public String getRequestURI() {
+        return this.getHost() + this.getRequestURL();
     }
 
     public String getContentType() {

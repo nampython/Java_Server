@@ -1,4 +1,4 @@
-package org.nampython.core;
+package org.nampython.core.center;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
@@ -7,6 +7,7 @@ import org.nampython.base.HttpRequest;
 import org.nampython.base.HttpResponse;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
+import org.nampython.core.*;
 
 import java.io.IOException;
 import java.io.InputStream;
