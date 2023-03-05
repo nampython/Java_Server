@@ -1,11 +1,10 @@
 package org.nampython.creation;
 
-import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Bean;
 import com.cyecize.ioc.annotations.PostConstruct;
-import com.cyecize.ioc.constants.Constants;
 import org.nampython.config.*;
 import org.nampython.support.JarFileUnzip;
+import org.nampython.support.JarFileUnzipImplement;
 import org.nampython.type.ServerComponent;
 
 import java.io.File;
@@ -22,12 +21,6 @@ public class BeanCenter {
     public static Integer port;
     public static Map<String, Object> configs;
     public static Class<?> mainClass;
-    private final JarFileUnzip jarFileUnzip;
-
-    @Autowired
-    public BeanCenter(JarFileUnzip jarFileUnzip) {
-        this.jarFileUnzip = jarFileUnzip;
-    }
 
     @PostConstruct
     public void init() {
@@ -38,7 +31,12 @@ public class BeanCenter {
      *
      */
     private void initConfigs() {
-//        configs.put(JavacheConfigValue.APP_COMPILE_OUTPUT_DIR_NAME.name(), "");
+        //Since there is not app output directory.
+        configs.putIfAbsent(ConfigValue.MAIN_APP_JAR_NAME.name(), "");
+        //There is no "classes" folder inside the jar file so we set it to empty.
+        configs.put(ConfigValue.APP_COMPILE_OUTPUT_DIR_NAME.name(), "");
+        //We want to stay on the same level.
+        configs.put(ConfigValue.WEB_APPS_DIR_NAME.name(), "./");
 
     }
 
@@ -46,7 +44,7 @@ public class BeanCenter {
      *
      */
     @Bean
-    public ConfigCenter configHandler() {
+    public ConfigCenter configHandler() throws IOException {
         final ConfigCenter configCenter = new AdditionalConfig(configs);
         int port;
         if (configCenter.getConfigValue(ConfigValue.SERVER_PORT, int.class) == ConstantsPool.EMPTY_PORT) {
@@ -57,28 +55,33 @@ public class BeanCenter {
             }
             configCenter.addConfigParam(ConfigValue.SERVER_PORT, port);
         }
-        configCenter.addConfigParam(ConfigValue.SERVER_WORKING_DIRECTORY, this.getWorkingDirectory());
+        configCenter.addConfigParam(ConfigValue.JAVACHE_WORKING_DIRECTORY, this.getWorkingDir());
         return configCenter;
     }
 
     /**
+     * Gets the server's working directory.
+     * If the app is in a jar file, it will extract it and return the directory to that folder.
      *
-     * @return
+     * @return working directory.
      */
-    private String getWorkingDirectory() {
+    private String getWorkingDir() throws IOException {
         String workingDir;
         try {
             final URI uri = mainClass.getProtectionDomain().getCodeSource().getLocation().toURI();
             workingDir = Path.of(uri).toString();
-            if (workingDir.endsWith(EXTENSION_JAR)) {
-                File file = new File(workingDir);
-                this.jarFileUnzip.unzipJar(file, false, workingDir.replace(".jar", ""));
-                workingDir = workingDir.replace(".jar", "");
-            }
-        } catch (URISyntaxException | IOException e) {
-            throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
         }
+
+        if (workingDir.endsWith(".jar")) {
+            final JarFileUnzip unzipService = new JarFileUnzipImplement();
+            unzipService.unzipJar(new File(workingDir), false, workingDir.replace(".jar", ""));
+            workingDir = workingDir.replace(".jar", "");
+        }
+
         System.out.println(String.format("Working Directory: %s", workingDir));
-        return null;
+
+        return workingDir;
     }
 }

@@ -2,8 +2,9 @@ package org.nampython.core.center;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.HttpRequest;
-import org.nampython.base.HttpResponse;
+import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
 import org.nampython.core.*;
@@ -90,7 +91,7 @@ public class ResourceHandler implements RequestHandler {
      */
     private void handleResourceFoundResponse(HttpRequest request, HttpResponse response, File resourceFile, long fileSize) throws IOException {
         final String mediaType = this.tikaBase.detect(resourceFile);
-        response.setStatusCode(HttpResponse.HttpStatus.OK);
+        response.setStatusCode(HttpStatus.OK);
         response.addHeader("Content-Type", mediaType);
         response.addHeader("Content-Length", fileSize + "");
         response.addHeader("Content-Disposition", "inline");

@@ -1,6 +1,6 @@
 package org.nampython.core;
 
-import org.nampython.base.HttpRequest;
+import org.nampython.base.api.HttpRequest;
 
 import java.io.InputStream;
 

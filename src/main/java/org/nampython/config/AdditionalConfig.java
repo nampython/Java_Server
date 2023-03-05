@@ -7,4 +7,14 @@ public class AdditionalConfig extends ConfigHandler{
         super();
         super.configParameters.putAll(configs);
     }
+    /**
+     * transfer runtime config map to global map.
+     */
+    private void setConfig(Map<String, Object> config) {
+        super.configParameters.putAll(config);
+    }
+
+
+    protected void loadRequestHandlerConfig() {
+    }
 }

@@ -2,9 +2,7 @@ package org.nampython.core.center;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.HttpCookie;
-import org.nampython.base.HttpRequest;
-import org.nampython.base.HttpResponse;
+import org.nampython.base.api.*;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
 import org.nampython.core.*;
@@ -73,14 +71,14 @@ public class RequestProcessor implements RequestHandler {
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
         try {
             final HttpRequest httpRequest = this.parseHttpRequest(inputStream);
-            final HttpResponse httpResponse = new HttpResponse();
+            final HttpResponse httpResponse = new HttpResponseImpl();
             sharedData.addObject(RequestHandlerShareData.HTTP_REQUEST, httpRequest);
             sharedData.addObject(RequestHandlerShareData.HTTP_RESPONSE, httpResponse);
         } catch (RequestTooBigException ex) {
             this.disposeInputStream(ex.getContentLength(), inputStream);
-            return this.errorHandling.handleRequestTooBig(outputStream, ex, new HttpResponse());
+            return this.errorHandling.handleRequestTooBig(outputStream, ex, new HttpResponseImpl());
         } catch (Exception e) {
-            return this.errorHandling.handleException(outputStream, e, new HttpResponse(), HttpResponse.HttpStatus.BAD_REQUEST);
+            return this.errorHandling.handleException(outputStream, e, new HttpResponseImpl(), HttpStatus.BAD_REQUEST);
         }
         return false;
     }
@@ -110,7 +108,7 @@ public class RequestProcessor implements RequestHandler {
     private HttpRequest parseHttpRequest(InputStream inputStream) {
 
         try {
-            final HttpRequest httpRequest = new HttpRequest();
+            final HttpRequest httpRequest = new HttpRequestImpl();
             final List<String> requestMetadata = this.parseMetadataLines(inputStream, false);
             this.handlerMethodAndURL(requestMetadata.get(0), httpRequest);
             this.handlerParamQuery(requestMetadata.get(0), httpRequest);
@@ -165,7 +163,7 @@ public class RequestProcessor implements RequestHandler {
             final String[] cookieKeyValuePair = cookieStr.split("=");
             final String keyName = decode(cookieKeyValuePair[0]);
             final String value = cookieKeyValuePair.length > 1 ? decode(cookieKeyValuePair[1]) : null;
-            httpRequest.getCookies().put(keyName, new HttpCookie(keyName, value));
+            httpRequest.getCookies().put(keyName, new HttpCookieImpl(keyName, value));
         }
     }
 
@@ -341,7 +339,7 @@ public class RequestProcessor implements RequestHandler {
      */
     @Override
     public int order() {
-        return configCenter.getConfigValue(ConfigValue.REQUEST_PROCESSOR_ORDER, int.class);
+        return Integer.MIN_VALUE;
     }
 
     /**

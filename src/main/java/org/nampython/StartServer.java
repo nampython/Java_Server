@@ -14,26 +14,26 @@ import org.nampython.support.IocCenter;
 import org.nampython.support.Logger;
 import org.nampython.type.ServerComponent;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class StartServer {
-
-    public static void main(String[] args) {
-        startServer(8080, StartServer.class);
-    }
-
     public static void startServer(Integer port, Class<?> serverInitializationClass) {
         startServer(port, new HashMap<>(), serverInitializationClass);
-
     }
 
     public static void startServer(Integer port, Map<String, Object> config, Class<?> mainClass) {
         startServer(port, config, mainClass, null);
     }
 
+    /**
+     *
+     * @param port port
+     * @param config config
+     * @param serverInitializationClass the entry point class
+     * @param onServerLoadedEvent Runnable
+     */
     private static void startServer(Integer port, Map<String, Object> config, Class<?> serverInitializationClass, Runnable onServerLoadedEvent) {
         Logger loggingService = null;
         try {
@@ -43,16 +43,13 @@ public class StartServer {
                     .and()
                     .build();
             BeanCenter.port = 8080;
-            BeanCenter.mainClass = StartServer.class;
+            BeanCenter.mainClass = serverInitializationClass;
             BeanCenter.configs = new HashMap<>();
 
-            /**
-             * Initi.. ApplicationContext to ...
-             */
             final DependencyContainer dependencyContainer = MagicInjector.run(StartServer.class, magicConfiguration);
             IocCenter.setServerDependencyContainer(dependencyContainer);
             IocCenter.setRequestHandlersDependencyContainer(dependencyContainer);
-            dependencyContainer.getService(InitLoadingRequest.class).loadRequestHandlers(new ArrayList<>(), null, null);
+            loadRequestHandlers(dependencyContainer.getService(InitLoadingRequest.class));
             loggingService = dependencyContainer.getService(Logger.class);
 
             final Server server = new ServerImplement(
@@ -71,5 +68,15 @@ public class StartServer {
             }
             System.exit(1);
         }
+    }
+
+    /**
+     *
+     * @param dependencyContainer {@link DependencyContainer} Contains all Services
+     * @param <T>
+     */
+    private static <T> void loadRequestHandlers(T dependencyContainer) {
+        InitLoadingRequest initLoadingRequest = (InitLoadingRequest) dependencyContainer;
+        initLoadingRequest.loadRequestHandlers(new ArrayList<>(), null, null);
     }
 }

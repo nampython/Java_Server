@@ -1,4 +1,4 @@
-package org.nampython.config;
+package org.nampython.base;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

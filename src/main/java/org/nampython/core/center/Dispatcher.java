@@ -4,14 +4,16 @@ package org.nampython.core.center;
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
 import org.nampython.base.*;
+import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
-import org.nampython.config.WebSolet;
 import org.nampython.core.DispatcherConfig;
 import org.nampython.core.RequestHandler;
 import org.nampython.core.RequestHandlerShareData;
 import org.nampython.core.SessionManagement;
-import org.nampython.creation.IoC;
+import org.nampython.support.IocCenter;
 import org.nampython.support.PathUtil;
 
 import java.io.File;
@@ -90,7 +92,7 @@ public class Dispatcher implements RequestHandler {
     @Override
     public void init() {
         try {
-            this.soletMap = this.loadApplications(this.copySoletConfig());
+            this.soletMap = this.loadApplications(this.createDispatcherConfig());
             this.applicationNames = this.getApplicationNames();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -99,8 +101,9 @@ public class Dispatcher implements RequestHandler {
 
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
-        final HttpSoletRequest request = new HttpSoletRequest(sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class));
-        final HttpSoletResponse response = new HttpSoletResponse(
+        final HttpSoletRequest request = new HttpSoletRequestImpl(
+                sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class));
+        final HttpSoletResponse response = new HttpSoletResponseImpl(
                 sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class), outputStream);
 
         if (request.isResource() && !this.trackResources) {
@@ -112,7 +115,7 @@ public class Dispatcher implements RequestHandler {
             return false;
         }
         if (response.getStatusCode() == null) {
-            response.setStatusCode(HttpResponse.HttpStatus.OK);
+            response.setStatusCode(HttpStatus.OK);
         }
         if (!response.getHeaders().containsKey(CONTENT_LENGTH_HEADER)
                 && response.getContent() != null
@@ -186,6 +189,7 @@ public class Dispatcher implements RequestHandler {
      */
     public Map<String, HttpSolet> loadApplications(DispatcherConfig dispatcherConfig) throws ClassNotFoundException, RuntimeException {
         try {
+            this.dispatcherConfig = dispatcherConfig;
             final Map<String, List<Class<HttpSolet>>> soletClasses = this.findSoletClasses();
             for (Map.Entry<String, List<Class<HttpSolet>>> entry : soletClasses.entrySet()) {
                 final String applicationName = entry.getKey();
@@ -225,7 +229,7 @@ public class Dispatcher implements RequestHandler {
             soletRoute = "/" + applicationName + soletRoute;
         }
 
-        final DispatcherConfig soletConfigCopy = this.copySoletConfig();
+        final SoletConfig soletConfigCopy = this.copySoletConfig();
         soletConfigCopy.setAttribute(
                 CONFIG_ASSETS_DIR,
                 PathUtil.appendPath(this.assetsDir, applicationName)
@@ -259,8 +263,12 @@ public class Dispatcher implements RequestHandler {
         return PathUtil.appendPath(appWorkingDir, File.separator);
     }
 
-    private DispatcherConfig copySoletConfig() {
-        final DispatcherConfig soletConfig = new DispatcherConfig();
+    /**
+     * Create SoletConfig instance and add objects.
+     * This Solet Config will be used for initializing every solet.
+     */
+    private SoletConfig copySoletConfig() {
+        final SoletConfig soletConfig = new SoletConfigImpl();
         this.dispatcherConfig.getAllAttributes().forEach(soletConfig::setAttribute);
         return soletConfig;
     }
@@ -292,21 +300,21 @@ public class Dispatcher implements RequestHandler {
 
     private String getAssetsDir() {
         return PathUtil.appendPath(
-                this.configCenter.getConfigValue(ConfigValue.WORKING_DIRECTORY),
+                this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY),
                 this.configCenter.getConfigValue(ConfigValue.ASSETS_DIR_NAME)
         );
     }
 
     private String getWebappsDir() {
         return PathUtil.appendPath(
-                this.configCenter.getConfigValue(ConfigValue.WORKING_DIRECTORY),
+                this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY),
                 this.configCenter.getConfigValue(ConfigValue.WEB_APPS_DIR_NAME)
         );
     }
 
 
     private Map<String, List<Class<HttpSolet>>> findSoletClasses() throws ClassNotFoundException {
-        File file = new File((String) this.configCenter.getConfigValue(ConfigValue.WORKING_DIRECTORY));
+        File file = new File((String) this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY));
         String packageName = "";
         this.loadClass(file, packageName);
         return this.soletClasses;
@@ -360,7 +368,7 @@ public class Dispatcher implements RequestHandler {
      * Iterates all elements and adds the .jar files to the system's classpath.
      */
     private void loadLibraries() {
-        String workingDir = this.configCenter.getConfigValue(ConfigValue.WORKING_DIRECTORY);
+        String workingDir = this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY);
         if (!workingDir.endsWith("/") && !workingDir.endsWith("\\")) {
             workingDir += "/";
         }
@@ -402,7 +410,7 @@ public class Dispatcher implements RequestHandler {
 
         soletConfig.setAttribute(
                 Dispatcher.CONFIG_DEPENDENCY_CONTAINER_KEY,
-                IoC.getRequestHandlersDependencyContainer()
+                IocCenter.getRequestHandlersDependencyContainer()
         );
 
         return soletConfig;

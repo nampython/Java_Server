@@ -2,6 +2,7 @@ package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Service;
 import org.nampython.base.*;
+import org.nampython.base.api.*;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,7 +16,7 @@ public class SessionManagement {
     private final HttpSessionStorage sessionStorage;
 
     public SessionManagement() {
-        this.sessionStorage = new HttpSessionStorage();
+        this.sessionStorage = new HttpSessionStorageImpl();
     }
 
     /**
@@ -57,7 +58,7 @@ public class SessionManagement {
         }
 
         if (request.getSession().isValid()) {
-            final HttpCookie cookie = new HttpCookie(this.getSessionCookieName(request), request.getSession().getId());
+            final HttpCookie cookie = new HttpCookieImpl(this.getSessionCookieName(request), request.getSession().getId());
 
             final String expires = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now().plusDays(SESSION_EXPIRE_DAYS));
 
@@ -78,7 +79,7 @@ public class SessionManagement {
     }
 
     private void addNewSession(HttpSoletRequest request) {
-        request.setSession(new HttpSession());
+        request.setSession(new HttpSessionImpl());
     }
 
     private boolean isSessionValid(HttpSession session) {

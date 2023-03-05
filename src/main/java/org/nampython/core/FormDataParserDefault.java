@@ -1,7 +1,7 @@
 package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.HttpRequest;
+import org.nampython.base.api.HttpRequest;
 
 import java.io.IOException;
 import java.io.InputStream;

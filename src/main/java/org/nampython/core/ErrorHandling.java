@@ -2,7 +2,8 @@ package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.HttpResponse;
+import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
 
@@ -34,7 +35,7 @@ public class ErrorHandling{
      */
     public boolean handleRequestTooBig(OutputStream outputStream, RequestTooBigException ex, HttpResponse response)
             throws IOException {
-        response.setStatusCode(HttpResponse.HttpStatus.BAD_REQUEST);
+        response.setStatusCode(HttpStatus.BAD_REQUEST);
         this.writeException(outputStream, ex, response);
 
         return true;
@@ -50,7 +51,7 @@ public class ErrorHandling{
      */
     public boolean handleException(OutputStream outputStream, Throwable throwable, HttpResponse response)
             throws IOException {
-        return this.handleException(outputStream, throwable, response, HttpResponse.HttpStatus.INTERNAL_SERVER_ERROR);
+        return this.handleException(outputStream, throwable, response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -63,7 +64,7 @@ public class ErrorHandling{
      * @throws IOException
      */
     public boolean handleException(OutputStream outputStream, Throwable throwable,
-                                   HttpResponse response, HttpResponse.HttpStatus status) throws IOException {
+                                   HttpResponse response, HttpStatus status) throws IOException {
         if (!this.printStackTrace) {
             return false;
         }

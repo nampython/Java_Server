@@ -10,6 +10,7 @@ import org.nampython.support.IocCenter;
 import java.io.File;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -32,18 +33,17 @@ public class LoadingRequestHandler implements InitLoadingRequest {
      */
     @Override
     public void loadRequestHandlers(List<String> requestHandlerFileNames, Map<File, URL> libURLs, Map<File, URL> apiURLs) {
-        Collection<ServiceDetails> implementOfRequestHandler = IocCenter.getServerDependencyContainer().getImplementations(RequestHandler.class);
-        List<RequestHandler> requestHandlerInstances = new ArrayList<>();
-
-        for (ServiceDetails implementation : implementOfRequestHandler) {
-            RequestHandler requestHandlerInstance = (RequestHandler) implementation.getInstance();
-            requestHandlerInstances.add(requestHandlerInstance);
-        }
-        requestHandlerInstances.sort(Comparator.comparingInt(RequestHandler::order));
-        for (RequestHandler requestHandlerInstance : requestHandlerInstances) {
-            requestHandlerInstance.init();
-        }
-        this.requestHandlers.addAll(requestHandlerInstances);
+        this.requestHandlers.addAll(IocCenter.getServerDependencyContainer().getImplementations(RequestHandler.class)
+                .stream()
+                .map(sd -> (RequestHandler) sd.getInstance())
+                .sorted(Comparator.comparingInt(RequestHandler::order))
+                .peek(RequestHandler::init)
+                .collect(Collectors.toList()));
+        this.destroyHandlers.addAll(IocCenter.getServerDependencyContainer().getImplementations(RequestDestroyHandler.class)
+                .stream()
+                .map(sd -> (RequestDestroyHandler) sd.getInstance())
+                .collect(Collectors.toList())
+        );
     }
 
     @Override

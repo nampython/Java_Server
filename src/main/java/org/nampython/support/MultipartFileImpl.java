@@ -1,10 +1,10 @@
-package org.nampython.base;
+package org.nampython.support;
 
 
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MultipartFile {
+public class MultipartFileImpl implements MultipartFile {
 
     private final int fileLength;
 
@@ -16,7 +16,7 @@ public class MultipartFile {
 
     private final InputStream inputStream;
 
-    public MultipartFile(int fileLength, String contentType, String fileName,
+    public MultipartFileImpl(int fileLength, String contentType, String fileName,
                              String fieldName, InputStream inputStream) {
         this.fileLength = fileLength;
         this.contentType = contentType;
@@ -25,32 +25,32 @@ public class MultipartFile {
         this.inputStream = inputStream;
     }
 
-
+    @Override
     public long getFileLength() {
         return this.fileLength;
     }
 
-
+    @Override
     public String getContentType() {
         return this.contentType;
     }
 
-
+    @Override
     public String getFileName() {
         return this.fileName;
     }
 
-
+    @Override
     public String getFieldName() {
         return this.fieldName;
     }
 
-
+    @Override
     public InputStream getInputStream() {
         return this.inputStream;
     }
 
-
+    @Override
     public byte[] getBytes() {
         try {
             return this.inputStream.readAllBytes();

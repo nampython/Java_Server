@@ -1,5 +1,7 @@
 package org.nampython.base;
 
+import org.nampython.base.api.HttpResponse;
+
 import java.io.IOException;
 import java.io.OutputStream;
 

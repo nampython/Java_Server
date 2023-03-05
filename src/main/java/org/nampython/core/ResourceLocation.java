@@ -37,7 +37,7 @@ public class ResourceLocation {
      *
      */
     private void initDirectories() {
-        final String workingDir = this.configCenter.getConfigValue(ConfigValue.WORKING_DIRECTORY);
+        final String workingDir = this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY);
         String pathToAssets = PathUtil.appendPath(
                 workingDir,
                 this.configCenter.getConfigValue(ConfigValue.ASSETS_DIR_NAME)
@@ -80,26 +80,35 @@ public class ResourceLocation {
     public File locateResource(String requestURL) throws ResourceNotFoundException {
         final String currentRequestAppName = this.getAppNameForRequest(requestURL);
         requestURL = requestURL.replaceFirst(Pattern.quote("/" + currentRequestAppName), "");
-        final String webAppResourceDir = String.format(
-                this.pathToWebappsFormat,
-                PathUtil.trimAllSlashes(currentRequestAppName),
-                PathUtil.trimAllSlashes(requestURL)
-        );
-        File file = new File(webAppResourceDir);
-        if (!file.exists() || !file.isDirectory()) {
-            final String assetsResourceDir = String.format(
-                    this.pathToAssetsFormat,
-                    PathUtil.trimAllSlashes(currentRequestAppName),
-                    PathUtil.trimAllSlashes(requestURL)
-            );
-            file = new File(assetsResourceDir);
+
+        File file = new File(this.createWebappsResourceDir(requestURL, currentRequestAppName));
+        if (!file.exists() || file.isDirectory()) {
+            file = new File(this.createAssetsResourceDir(requestURL, currentRequestAppName));
         }
+
         if (file.exists() && !file.isDirectory()) {
             return file;
-        } else {
-            throw new ResourceNotFoundException(String.format(RESOURCE_NOT_FOUND_FORMAT, requestURL));
         }
+
+        throw new ResourceNotFoundException(String.format(RESOURCE_NOT_FOUND_FORMAT, requestURL));
     }
+
+    private String createWebappsResourceDir(String requestURL, String appName) {
+        return String.format(
+                this.pathToWebappsFormat,
+                PathUtil.trimAllSlashes(appName),
+                PathUtil.trimAllSlashes(requestURL)
+        );
+    }
+
+    private String createAssetsResourceDir(String requestURL, String appName) {
+        return String.format(
+                this.pathToAssetsFormat,
+                PathUtil.trimAllSlashes(appName),
+                PathUtil.trimAllSlashes(requestURL)
+        );
+    }
+
 
     /**
      * @param requestURL

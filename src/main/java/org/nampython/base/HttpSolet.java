@@ -1,10 +1,8 @@
 package org.nampython.base;
 
-import org.nampython.core.DispatcherConfig;
-
 public interface HttpSolet {
 
-    void init(DispatcherConfig soletConfig);
+    void init(SoletConfig soletConfig);
 
     void service(HttpSoletRequest request, HttpSoletResponse response) throws Exception;
 
@@ -12,5 +10,5 @@ public interface HttpSolet {
 
     boolean hasIntercepted();
 
-    DispatcherConfig getSoletConfig();
+    SoletConfig getSoletConfig();
 }

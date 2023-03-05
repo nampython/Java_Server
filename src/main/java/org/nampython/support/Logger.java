@@ -86,7 +86,7 @@ public class Logger {
      * Creates the log dir if it doesn't exist, sets up the path to the logs file.
      */
     private void initLogsFile() {
-        final String logsDir = this.configService.getConfigValue(ConfigValue.WORKING_DIRECTORY) +
+        final String logsDir = this.configService.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY) +
                 this.configService.getConfigParamString(ConfigValue.LOGS_DIR_NAME);
 
         new File(logsDir).mkdir();
