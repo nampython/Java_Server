@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 
+/**
+ *
+ */
 public class ConnectionHandler implements Runnable {
     private final Socket socketClient;
     private final List<RequestHandler> requestHandlers;

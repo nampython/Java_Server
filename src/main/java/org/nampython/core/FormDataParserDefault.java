@@ -11,17 +11,21 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class FormDataParserDefault implements FormDataParser {
     public static final String RAW_BODY_PARAM_NAME = "rawBodyText";
+
     /**
      * @param inputStream - request's input stream, read to the point where the body starts.
      * @param request     - current request.
      */
     @Override
     public void parseBodyParams(InputStream inputStream, HttpRequest request) throws CannotParseRequestException {
-
+        try {
+            this.setBodyParameters(this.readBody(inputStream, request), request);
+        } catch (IOException var4) {
+            throw new CannotParseRequestException(var4.getMessage(), var4);
+        }
     }
 
     /**
-     *
      * @param inputStream
      * @param request
      * @return
@@ -29,9 +33,7 @@ public class FormDataParserDefault implements FormDataParser {
      */
     private String readBody(InputStream inputStream, HttpRequest request) throws IOException {
         final int contentLength = request.getContentLength();
-
         final byte[] bytes = inputStream.readNBytes(contentLength);
-
         final String body = new String(bytes, StandardCharsets.UTF_8);
 //        if (this.showRequestLog) {
 //            this.loggingService.info(body);
@@ -42,7 +44,6 @@ public class FormDataParserDefault implements FormDataParser {
 
 
     /**
-     *
      * @param requestBody
      * @param request
      */
@@ -56,13 +57,11 @@ public class FormDataParserDefault implements FormDataParser {
             final String[] tokens = bodyParamPair.split("=");
             final String paramKey = decode(tokens[0]);
             final String value = tokens.length > 1 ? decode(tokens[1]) : null;
-
             request.addBodyParameter(paramKey, value);
         }
     }
 
     /**
-     *
      * @param str
      * @return
      */

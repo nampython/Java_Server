@@ -3,12 +3,13 @@ package org.nampython.core;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.List;
 
 /**
  *
  */
-public class ServerImplement implements Server {
+public class ServerImplement extends BaseServer {
     private static final int SOCKET_TIMEOUT_MILLISECONDS;
     private static final String LISTENING_MESSAGE_FORMAT;
 
@@ -26,6 +27,8 @@ public class ServerImplement implements Server {
     }
 
     /**
+     * Socket is opening for listening the connections from the client and with each the new request need to open
+     * a new thread where the connection is handled.
      * @throws IOException
      */
     @Override
@@ -35,15 +38,19 @@ public class ServerImplement implements Server {
         System.out.println(String.format(LISTENING_MESSAGE_FORMAT, this.port));
 
         while (true) {
-            final Socket client = serverSocket.accept();
-            client.setSoTimeout(SOCKET_TIMEOUT_MILLISECONDS);
-            final Thread thread = new Thread(new ConnectionHandler(
-                    client,
-                    this.initLoadingRequest.getRequestHandlers(),
-                    this.initLoadingRequest.getRequestDestroyHandlers()
-            ));
-            thread.start();
+            while (true) {
+                try {
+                    final Socket client = serverSocket.accept();
+                    client.setSoTimeout(SOCKET_TIMEOUT_MILLISECONDS);
+                    final Thread thread = new Thread(new ConnectionHandler(
+                            client,
+                            this.initLoadingRequest.getRequestHandlers(),
+                            this.initLoadingRequest.getRequestDestroyHandlers()
+                    ));
+                    thread.start();
+                } catch (SocketTimeoutException ignored) {
+                }
+            }
         }
     }
-
 }

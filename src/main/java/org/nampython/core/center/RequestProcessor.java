@@ -2,6 +2,7 @@ package org.nampython.core.center;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
+import org.jetbrains.annotations.NotNull;
 import org.nampython.base.api.*;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
@@ -10,6 +11,7 @@ import org.nampython.core.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpCookie;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -18,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * This class is a part of {@link RequestHandler}. The responsible for this class is to parse HTTP Request from client.
  */
 @Service
 public class RequestProcessor implements RequestHandler {
@@ -29,6 +31,7 @@ public class RequestProcessor implements RequestHandler {
     public static final String MULTIPART_FORM_DATA;
     public static final String RAW_BODY_PARAM_NAME;
     private static final String REQUEST_TOO_BIG_MSG = "Request too big.";
+
     static {
         CONTENT_LENGTH = "Content-Length";
         CACHE_CONTROL_HEADER_NAME = "Cache-Control";
@@ -52,9 +55,6 @@ public class RequestProcessor implements RequestHandler {
         this.errorHandling = errorHandling;
     }
 
-    /**
-     *
-     */
     @Override
     public void init() {
         //NOTHING HERE
@@ -63,7 +63,7 @@ public class RequestProcessor implements RequestHandler {
     /**
      * @param inputStream
      * @param outputStream
-     * @param sharedData
+     * @param sharedData   Store HTTP Request and HTTp Response after parsing
      * @return
      * @throws IOException
      */
@@ -106,7 +106,6 @@ public class RequestProcessor implements RequestHandler {
      * @return
      */
     private HttpRequest parseHttpRequest(InputStream inputStream) {
-
         try {
             final HttpRequest httpRequest = new HttpRequestImpl();
             final List<String> requestMetadata = this.parseMetadataLines(inputStream, false);
@@ -121,16 +120,15 @@ public class RequestProcessor implements RequestHandler {
                 final String contentType = httpRequest.getContentType();
                 final FormDataParserProvider formDataParserProvider = FormDataParserProvider.findByContentType(contentType);
                 this.getParser(formDataParserProvider).parseBodyParams(inputStream, httpRequest);
+                this.trimRequestPath(httpRequest);
+                return httpRequest;
             }
-            this.trimRequestPath(httpRequest);
-            return httpRequest;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
-     *
      * @param request
      */
     private void trimRequestPath(HttpRequest request) {
@@ -152,24 +150,34 @@ public class RequestProcessor implements RequestHandler {
     }
 
     /**
+     * An HTTP cookie (web cookie, browser cookie) is a small piece of data that a server sends to a user's web browser.
+     * The browser may store the cookie and send it back to the same server with later requests. Typically, an HTTP cookie is used to tell if
+     * two requests come from the same browser—keeping a user logged in, for example.
+     * It remembers stateful information for the stateless HTTP protocol.
      * @param httpRequest
      */
     private void handlerCookies(HttpRequest httpRequest) {
-        if (httpRequest.getHeaders().get(COOKIE_HEADER_NAME) == null) {
-            return;
-        }
-        String[] allCookies = httpRequest.getHeaders().get(COOKIE_HEADER_NAME).split(";\\s");
-        for (String cookieStr : allCookies) {
-            final String[] cookieKeyValuePair = cookieStr.split("=");
-            final String keyName = decode(cookieKeyValuePair[0]);
-            final String value = cookieKeyValuePair.length > 1 ? decode(cookieKeyValuePair[1]) : null;
-            httpRequest.getCookies().put(keyName, new HttpCookieImpl(keyName, value));
+        if (httpRequest.getHeaders().get(COOKIE_HEADER_NAME) != null) {
+            String[] allCookies = httpRequest.getHeaders().get(COOKIE_HEADER_NAME).split(";\\s");
+            for (String cookieStr : allCookies) {
+                final String[] cookieKeyValuePair = cookieStr.split("=");
+                final String keyName = decode(cookieKeyValuePair[0]);
+                final String value = cookieKeyValuePair.length > 1 ? decode(cookieKeyValuePair[1]) : null;
+                httpRequest.getCookies().put(keyName, new HttpCookieImpl(keyName, value));
+            }
         }
     }
 
     /**
-     * @param requestMetadata
-     * @param httpRequest
+     * HTTP header fields are a list of strings sent and received by both the client program and server on every HTTP request and response.
+     * These headers are usually invisible to the end-user and are only processed or logged by the server and client applications.
+     * They define how information sent/received through the connection are encoded (as in Content-Encoding),
+     * the session verification and identification of the client (as in browser cookies, IP address, user-agent) or their anonymity
+     * thereof (VPN or proxy masking, user-agent spoofing), how the server should handle data (as in Do-Not-Track),
+     * the age (the time it has resided in a shared cache) of the document being downloaded, amongst others.
+     *
+     * @param requestMetadata List of String metadata
+     * @param httpRequest     Http Request from Client
      */
     private void handlerHeader(List<String> requestMetadata, HttpRequest httpRequest) {
         for (int i = 1; i < requestMetadata.size(); i++) {
@@ -193,25 +201,29 @@ public class RequestProcessor implements RequestHandler {
     }
 
     /**
-     * @param requestFirstLine
-     * @param httpRequest
+     * GET parameters (also called URL parameters or query strings) are used when a client, such as a browser,
+     * requests a particular resource from a web server using the HTTP protocol.These parameters are usually name-value pairs, separated by an equals sign =.
+     * For Example: <a href="http://localhost:8080/index.html?name=A&age=2">http://localhost:8080/index.html?name=A&age=2</a> we can see that requestURL is index.html?name=1&age=2
+     * with the query parameter pair name = 1 and age = 2. We have to detach key-value of parameters and set them to request object.
+     *
+     * @param requestFirstLine First element in array
+     * @param httpRequest      HttpRequest client sent
      */
-    private void handlerParamQuery(String requestFirstLine, HttpRequest httpRequest) {
-        String fullRequestURL = requestFirstLine.split("\\s")[1];
-        String[] urlQueryParamPair = fullRequestURL.split("\\?");
-
-        if (urlQueryParamPair.length > 2) {
-            final String[] queryParamPairs = urlQueryParamPair[1].split("&");
-            final Map<String, String> queryParameters = httpRequest.getQueryParameters();
-            for (String paramPair : queryParamPairs) {
-                final String[] queryParamPair = paramPair.split("=");
-                final String keyName = decode(queryParamPair[0]);
-                final String value = queryParamPair.length > 1 ? decode(queryParamPair[1]) : null;
-                queryParameters.put(keyName, value);
+    private void handlerParamQuery(@NotNull String requestFirstLine, HttpRequest httpRequest) {
+        String fullRequestURL = requestFirstLine.split("\\s")[1]; // /index.html?name=1&age=2
+        String[] urlQueryParamPair = fullRequestURL.split("\\?"); // /index.html?name=1&age=2
+        if (urlQueryParamPair.length >= 2) {
+            for (int i = 1; i < urlQueryParamPair.length; i++) {
+                String[] queryParamPairs = urlQueryParamPair[i].split("&");
+                for (String paramPair : queryParamPairs) {
+                    final String[] queryParamPair = paramPair.split("=");
+                    final String key = decode(queryParamPair[0]);
+                    final String value = queryParamPair.length > 1 ? decode(queryParamPair[1]) : null;
+                    httpRequest.getQueryParameters().put(key, value);
+                }
             }
         }
     }
-
 
     /**
      * @param provider
@@ -248,7 +260,6 @@ public class RequestProcessor implements RequestHandler {
     }
 
     /**
-     *
      * @param str
      * @return
      */
@@ -326,7 +337,6 @@ public class RequestProcessor implements RequestHandler {
 //            if (this.showRequestLog) {
 //                this.loggingService.info(String.join("\n", metadataLines));
 //            }
-
             return metadataLines;
         } catch (IOException ex) {
             throw new CannotParseRequestException(ex.getMessage(), ex);
