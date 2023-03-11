@@ -2,7 +2,7 @@ package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.BaseHttpResponse;
 import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
@@ -33,7 +33,7 @@ public class ErrorHandling{
      * @return
      * @throws IOException
      */
-    public boolean handleRequestTooBig(OutputStream outputStream, RequestTooBigException ex, HttpResponse response)
+    public boolean handleRequestTooBig(OutputStream outputStream, RequestTooBigException ex, BaseHttpResponse response)
             throws IOException {
         response.setStatusCode(HttpStatus.BAD_REQUEST);
         this.writeException(outputStream, ex, response);
@@ -49,7 +49,7 @@ public class ErrorHandling{
      * @return
      * @throws IOException
      */
-    public boolean handleException(OutputStream outputStream, Throwable throwable, HttpResponse response)
+    public boolean handleException(OutputStream outputStream, Throwable throwable, BaseHttpResponse response)
             throws IOException {
         return this.handleException(outputStream, throwable, response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -64,7 +64,7 @@ public class ErrorHandling{
      * @throws IOException
      */
     public boolean handleException(OutputStream outputStream, Throwable throwable,
-                                   HttpResponse response, HttpStatus status) throws IOException {
+                                   BaseHttpResponse response, HttpStatus status) throws IOException {
         if (!this.printStackTrace) {
             return false;
         }
@@ -83,7 +83,7 @@ public class ErrorHandling{
      * @throws IOException
      */
     private void writeException(OutputStream outputStream,
-                                Throwable throwable, HttpResponse response) throws IOException {
+                                Throwable throwable, BaseHttpResponse response) throws IOException {
         final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
         throwable.printStackTrace(new PrintStream(byteOutputStream));
         response.setContent(byteOutputStream.toByteArray());

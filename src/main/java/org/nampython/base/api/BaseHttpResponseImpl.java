@@ -2,21 +2,20 @@ package org.nampython.base.api;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.nampython.base.api.Constants.LINE_SEPARATOR;
 
 
-public class HttpResponseImpl implements HttpResponse {
+public class BaseHttpResponseImpl implements BaseHttpResponse {
     private static final String CONTENT_TYPE = "Content-Type";
     private HttpStatus statusCode;
     private byte[] content;
     private final Map<String, String> headers;
     private final Map<String, HttpCookie> cookies;
 
-    public HttpResponseImpl() {
+    public BaseHttpResponseImpl() {
         this.setContent(new byte[0]);
         this.headers = new HashMap<>();
         this.cookies = new HashMap<>();

@@ -1,7 +1,7 @@
 package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.BaseHttpRequest;
 import org.nampython.base.api.MultipartFile;
 
 
@@ -16,7 +16,7 @@ public class ToyoteRequestDestroyHandler implements RequestDestroyHandler {
 
     @Override
     public void destroy(RequestHandlerShareData sharedData) {
-        final HttpRequest request = sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class);
+        final BaseHttpRequest request = sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, BaseHttpRequest.class);
         if (request == null || request.getMultipartFiles() == null) {
             return;
         }

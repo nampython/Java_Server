@@ -3,7 +3,7 @@ package org.nampython.base.api;
 import java.util.List;
 import java.util.Map;
 
-public interface HttpRequest {
+public interface BaseHttpRequest {
     void setMethod(String method);
 
     void setRequestURL(String requestUrl);

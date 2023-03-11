@@ -4,6 +4,8 @@ package org.nampython.core;
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
 import com.cyecize.ioc.models.ServiceDetails;
+import org.nampython.base.BaseHttp;
+import org.nampython.base.Controller;
 import org.nampython.support.IocCenter;
 
 
@@ -64,8 +66,8 @@ public class LoadingRequestHandler implements InitLoadingRequest {
     /**
      * We need to call the init method of each implement {@link RequestHandler}. But the specified init method is just called
      * in the {@link org.nampython.core.center.Dispatcher} and {@link org.nampython.core.center.ResourceHandler}
-     * At {@link org.nampython.core.center.Dispatcher} we will find all class that having {@link org.nampython.base.WebSolet} annotation and
-     * extends {@link org.nampython.base.BaseHttpSolet}. Besides, We need also to decide the application's name.
+     * At {@link org.nampython.core.center.Dispatcher} we will find all class that having {@link Controller} annotation and
+     * extends {@link BaseHttp}. Besides, We need also to decide the application's name.
      * //TODO: Research the init method in the ResourceHandler class
      * @param requestHandlers List of the requestHandlers
      */

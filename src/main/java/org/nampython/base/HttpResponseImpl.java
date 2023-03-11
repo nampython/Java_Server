@@ -1,18 +1,17 @@
 package org.nampython.base;
 
+import org.nampython.base.api.BaseHttpResponse;
 import org.nampython.base.api.HttpCookie;
-import org.nampython.base.api.HttpResponse;
 import org.nampython.base.api.HttpStatus;
 
-import java.io.OutputStream;
 import java.util.Map;
 
-public class HttpSoletResponseImpl implements HttpSoletResponse {
+public class HttpResponseImpl implements HttpResponse {
 
-    private final HttpResponse response;
+    private final BaseHttpResponse response;
 
 
-    public HttpSoletResponseImpl(HttpResponse response) {
+    public HttpResponseImpl(BaseHttpResponse response) {
         this.response = response;
     }
 

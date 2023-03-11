@@ -1,10 +1,10 @@
 package org.nampython.base;
 
-public interface HttpSolet {
+public interface HttpHandler {
 
     void init(SoletConfig soletConfig);
 
-    void service(HttpSoletRequest request, HttpSoletResponse response) throws Exception;
+    void service(HttpRequest request, HttpResponse response) throws Exception;
 
     boolean isInitialized();
 

@@ -71,15 +71,15 @@ public class RequestProcessor implements RequestHandler {
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
         try {
-            final HttpRequest httpRequest = this.parseHttpRequest(inputStream);
-            final HttpResponse httpResponse = new HttpResponseImpl();
-            sharedData.addObject(RequestHandlerShareData.HTTP_REQUEST, httpRequest);
-            sharedData.addObject(RequestHandlerShareData.HTTP_RESPONSE, httpResponse);
+            final BaseHttpRequest baseHttpRequest = this.parseHttpRequest(inputStream);
+            final BaseHttpResponse baseHttpResponse = new BaseHttpResponseImpl();
+            sharedData.addObject(RequestHandlerShareData.HTTP_REQUEST, baseHttpRequest);
+            sharedData.addObject(RequestHandlerShareData.HTTP_RESPONSE, baseHttpResponse);
         } catch (RequestTooBigException ex) {
             this.disposeInputStream(ex.getContentLength(), inputStream);
-            return this.errorHandling.handleRequestTooBig(outputStream, ex, new HttpResponseImpl());
+            return this.errorHandling.handleRequestTooBig(outputStream, ex, new BaseHttpResponseImpl());
         } catch (Exception e) {
-            return this.errorHandling.handleException(outputStream, e, new HttpResponseImpl(), HttpStatus.BAD_REQUEST);
+            return this.errorHandling.handleException(outputStream, e, new BaseHttpResponseImpl(), HttpStatus.BAD_REQUEST);
         }
         return false;
     }
@@ -107,26 +107,26 @@ public class RequestProcessor implements RequestHandler {
      * @param inputStream producing a HTTP request
      * @return HttpRequest
      */
-    private HttpRequest parseHttpRequest(InputStream inputStream) {
+    private BaseHttpRequest parseHttpRequest(InputStream inputStream) {
         try {
-            final HttpRequest httpRequest = new HttpRequestImpl();
+            final BaseHttpRequest baseHttpRequest = new BaseHttpRequestImpl();
             final List<String> requestMetadata = this.parseMetadataLines(inputStream, false);
-            this.handlerMethodAndURL(requestMetadata.get(0), httpRequest);
-            this.handlerParamQuery(requestMetadata.get(0), httpRequest);
-            this.handlerHeader(requestMetadata, httpRequest);
-            this.handlerCookies(httpRequest);
-            this.handlerContentLength(inputStream, httpRequest);
-            if (httpRequest.getContentLength() > this.maxRequestSize) {
-                throw new RequestTooBigException(REQUEST_TOO_BIG_MSG, httpRequest.getContentLength());
+            this.handlerMethodAndURL(requestMetadata.get(0), baseHttpRequest);
+            this.handlerParamQuery(requestMetadata.get(0), baseHttpRequest);
+            this.handlerHeader(requestMetadata, baseHttpRequest);
+            this.handlerCookies(baseHttpRequest);
+            this.handlerContentLength(inputStream, baseHttpRequest);
+            if (baseHttpRequest.getContentLength() > this.maxRequestSize) {
+                throw new RequestTooBigException(REQUEST_TOO_BIG_MSG, baseHttpRequest.getContentLength());
             } else {
-                final String contentType = httpRequest.getContentType();
+                final String contentType = baseHttpRequest.getContentType();
                 if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
-                    this.multipartFormDataParser.parseBodyParams(inputStream, httpRequest);
+                    this.multipartFormDataParser.parseBodyParams(inputStream, baseHttpRequest);
                 } else {
-                    this.defaultFormDataParser.parseBodyParams(inputStream, httpRequest);
+                    this.defaultFormDataParser.parseBodyParams(inputStream, baseHttpRequest);
                 }
-                this.trimRequestPath(httpRequest);
-                return httpRequest;
+                this.trimRequestPath(baseHttpRequest);
+                return baseHttpRequest;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -136,7 +136,7 @@ public class RequestProcessor implements RequestHandler {
     /**
      * @param request
      */
-    private void trimRequestPath(HttpRequest request) {
+    private void trimRequestPath(BaseHttpRequest request) {
         request.setRequestURL(
                 request.getRequestURL().replaceAll("\\.{2,}\\/?", "")
         );
@@ -152,7 +152,7 @@ public class RequestProcessor implements RequestHandler {
      * @param request
      * @throws IOException
      */
-    private void handlerContentLength(InputStream inputStream, HttpRequest request) throws IOException {
+    private void handlerContentLength(InputStream inputStream, BaseHttpRequest request) throws IOException {
         if (request.getHeaders().get(CONTENT_LENGTH) != null) {
             request.setContentLength(Integer.parseInt(request.getHeaders().get(CONTENT_LENGTH)));
         } else {
@@ -166,16 +166,16 @@ public class RequestProcessor implements RequestHandler {
      * two requests come from the same browser—keeping a user logged in, for example.
      * It remembers stateful information for the stateless HTTP protocol.
      *
-     * @param httpRequest
+     * @param baseHttpRequest
      */
-    private void handlerCookies(HttpRequest httpRequest) {
-        if (httpRequest.getHeaders().get(COOKIE_HEADER_NAME) != null) {
-            String[] allCookies = httpRequest.getHeaders().get(COOKIE_HEADER_NAME).split(";\\s");
+    private void handlerCookies(BaseHttpRequest baseHttpRequest) {
+        if (baseHttpRequest.getHeaders().get(COOKIE_HEADER_NAME) != null) {
+            String[] allCookies = baseHttpRequest.getHeaders().get(COOKIE_HEADER_NAME).split(";\\s");
             for (String cookieStr : allCookies) {
                 final String[] cookieKeyValuePair = cookieStr.split("=");
                 final String keyName = decode(cookieKeyValuePair[0]);
                 final String value = cookieKeyValuePair.length > 1 ? decode(cookieKeyValuePair[1]) : null;
-                httpRequest.getCookies().put(keyName, new HttpCookieImpl(keyName, value));
+                baseHttpRequest.getCookies().put(keyName, new HttpCookieImpl(keyName, value));
             }
         }
     }
@@ -189,24 +189,24 @@ public class RequestProcessor implements RequestHandler {
      * the age (the time it has resided in a shared cache) of the document being downloaded, amongst others.
      *
      * @param requestMetadata List of String metadata
-     * @param httpRequest     Http Request from Client
+     * @param baseHttpRequest     Http Request from Client
      */
-    private void handlerHeader(List<String> requestMetadata, HttpRequest httpRequest) {
+    private void handlerHeader(List<String> requestMetadata, BaseHttpRequest baseHttpRequest) {
         for (int i = 1; i < requestMetadata.size(); i++) {
             final String[] headerKeyValuePair = requestMetadata.get(i).split(":\\s+");
             final String key = headerKeyValuePair[0];
             final String value = headerKeyValuePair[1];
-            httpRequest.addHeader(key, value);
+            baseHttpRequest.addHeader(key, value);
         }
     }
 
     /**
      * @param requestFirstLine
-     * @param httpRequest
+     * @param baseHttpRequest
      */
-    private void handlerMethodAndURL(String requestFirstLine, HttpRequest httpRequest) {
-        httpRequest.setMethod(requestFirstLine.split("\\s")[0]);
-        httpRequest.setRequestURL(URLDecoder.decode(
+    private void handlerMethodAndURL(String requestFirstLine, BaseHttpRequest baseHttpRequest) {
+        baseHttpRequest.setMethod(requestFirstLine.split("\\s")[0]);
+        baseHttpRequest.setRequestURL(URLDecoder.decode(
                 requestFirstLine.split("[\\s\\?]")[1],
                 StandardCharsets.UTF_8
         ));
@@ -219,9 +219,9 @@ public class RequestProcessor implements RequestHandler {
      * with the query parameter pair name = 1 and age = 2. We have to detach key-value of parameters and set them to request object.
      *
      * @param requestFirstLine First element in array
-     * @param httpRequest      HttpRequest client sent
+     * @param baseHttpRequest      HttpRequest client sent
      */
-    private void handlerParamQuery(@NotNull String requestFirstLine, HttpRequest httpRequest) {
+    private void handlerParamQuery(@NotNull String requestFirstLine, BaseHttpRequest baseHttpRequest) {
         String fullRequestURL = requestFirstLine.split("\\s")[1]; // /index.html?name=1&age=2
         String[] urlQueryParamPair = fullRequestURL.split("\\?"); // /index.html?name=1&age=2
         if (urlQueryParamPair.length >= 2) {
@@ -231,7 +231,7 @@ public class RequestProcessor implements RequestHandler {
                     final String[] queryParamPair = paramPair.split("=");
                     final String key = decode(queryParamPair[0]);
                     final String value = queryParamPair.length > 1 ? decode(queryParamPair[1]) : null;
-                    httpRequest.getQueryParameters().put(key, value);
+                    baseHttpRequest.getQueryParameters().put(key, value);
                 }
             }
         }

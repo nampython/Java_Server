@@ -1,7 +1,7 @@
 package org.nampython.core;
 
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.BaseHttpRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +21,7 @@ public class FormDataParserDefault implements FormDataParser {
      * @param request     - current request.
      */
     @Override
-    public void parseBodyParams(InputStream inputStream, HttpRequest request) throws CannotParseRequestException {
+    public void parseBodyParams(InputStream inputStream, BaseHttpRequest request) throws CannotParseRequestException {
         try {
             this.setBodyParameters(this.readBody(inputStream, request), request);
         } catch (IOException var4) {
@@ -35,7 +35,7 @@ public class FormDataParserDefault implements FormDataParser {
      * @return
      * @throws IOException
      */
-    private String readBody(InputStream inputStream, HttpRequest request) throws IOException {
+    private String readBody(InputStream inputStream, BaseHttpRequest request) throws IOException {
         final int contentLength = request.getContentLength();
         final byte[] bytes = inputStream.readNBytes(contentLength);
         final String body = new String(bytes, StandardCharsets.UTF_8);
@@ -50,7 +50,7 @@ public class FormDataParserDefault implements FormDataParser {
      * @param requestBody
      * @param request
      */
-    private void setBodyParameters(String requestBody, HttpRequest request) {
+    private void setBodyParameters(String requestBody, BaseHttpRequest request) {
         if (requestBody != null && !Objects.requireNonNull(requestBody).isEmpty() && !requestBody.trim().isEmpty()) {
             String[] bodyParamPairs = requestBody.split("&");
             for (String bodyParamPair : bodyParamPairs) {

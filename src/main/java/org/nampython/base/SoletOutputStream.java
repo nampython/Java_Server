@@ -1,6 +1,6 @@
 package org.nampython.base;
 
-import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.BaseHttpResponse;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,12 +16,12 @@ import java.io.OutputStream;
 public class SoletOutputStream {
     private final OutputStream clientOutputStream;
 
-    private final HttpResponse response;
+    private final BaseHttpResponse response;
 
     private boolean isDirty = false;
 
     SoletOutputStream(OutputStream clientOutputStream,
-                      HttpResponse response) {
+                      BaseHttpResponse response) {
         this.clientOutputStream = clientOutputStream;
         this.response = response;
     }

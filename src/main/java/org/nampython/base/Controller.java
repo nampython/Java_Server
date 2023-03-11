@@ -6,12 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotate an implementation of {@link HttpSolet} with this annotation for
+ * Annotate an implementation of {@link HttpHandler} with this annotation for
  * broccolina to map the solet route.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface WebSolet {
+public @interface Controller {
     String value() default "";
     boolean loadOnStartUp() default true;
 }

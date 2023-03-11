@@ -26,7 +26,7 @@ public class SessionManagement {
      * removes the cookie and a new session to the HttpRequest.
      * if the session is valid, sets the session to the HttpRequest.
      */
-    public void initSessionIfExistent(HttpSoletRequest request) {
+    public void initSessionIfExistent(HttpRequest request) {
         final HttpCookie cookie = request.getCookies().get(this.getSessionCookieName(request));
 
         if (cookie != null) {
@@ -47,7 +47,7 @@ public class SessionManagement {
      * If the session is valid, adds a cookie.
      * If the session is invalid, removes the cookie.
      */
-    public void sendSessionIfExistent(HttpSoletRequest request, HttpResponse response) {
+    public void sendSessionIfExistent(HttpRequest request, HttpResponse response) {
         if (request.getSession() != null) {
             if (this.sessionStorage.getSession(request.getSession().getId()) == null) {
                 this.sessionStorage.addSession(request.getSession());
@@ -72,7 +72,7 @@ public class SessionManagement {
         return this.sessionStorage;
     }
 
-    private void addNewSession(HttpSoletRequest request) {
+    private void addNewSession(HttpRequest request) {
         request.setSession(new HttpSessionImpl());
     }
 
@@ -80,7 +80,7 @@ public class SessionManagement {
         return session != null && session.isValid();
     }
 
-    private String getSessionCookieName(HttpSoletRequest request) {
+    private String getSessionCookieName(HttpRequest request) {
         return SESSION_COOKIE_NAME + request.getContextPath();
     }
 }

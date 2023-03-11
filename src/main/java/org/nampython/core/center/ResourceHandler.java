@@ -3,8 +3,8 @@ package org.nampython.core.center;
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.PostConstruct;
 import com.cyecize.ioc.annotations.Service;
-import org.nampython.base.api.HttpRequest;
-import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.BaseHttpRequest;
+import org.nampython.base.api.BaseHttpResponse;
 import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
@@ -58,13 +58,13 @@ public class ResourceHandler implements RequestHandler {
      */
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
-        final HttpRequest httpRequest = sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class);
-        final HttpResponse httpResponse = sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class);
+        final BaseHttpRequest baseHttpRequest = sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, BaseHttpRequest.class);
+        final BaseHttpResponse baseHttpResponse = sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, BaseHttpResponse.class);
         try {
-            final File resource = this.locateResource(httpRequest.getRequestURL());
+            final File resource = this.locateResource(baseHttpRequest.getRequestURL());
             try (final FileInputStream fileInputStream = new FileInputStream(resource)) {
-                this.handleResourceFoundResponse(httpRequest, httpResponse, resource, fileInputStream.available());
-                outputStream.write(httpResponse.getBytes());
+                this.handleResourceFoundResponse(baseHttpRequest, baseHttpResponse, resource, fileInputStream.available());
+                outputStream.write(baseHttpResponse.getBytes());
                 this.transferStream(fileInputStream, outputStream);
             }
             return true;
@@ -198,13 +198,13 @@ public class ResourceHandler implements RequestHandler {
     }
 
     /**
-     * Populates {@link HttpResponse} with found resource.
+     * Populates {@link BaseHttpResponse} with found resource.
      * Adds necessary headers that are required in order to transfer a resource using the HTTP protocol.
      * In this case I use Tika library that is used for document type detection and content extraction from various file formats.
      * To know more about Tika library, accesses via link <a href="https://tika.apache.org/">https://tika.apache.org/</a>
      * to research and know more about this library
      */
-    private void handleResourceFoundResponse(HttpRequest request, HttpResponse response, File resourceFile, long fileSize) throws IOException {
+    private void handleResourceFoundResponse(BaseHttpRequest request, BaseHttpResponse response, File resourceFile, long fileSize) throws IOException {
         final String mediaType = this.tikaBase.detect(resourceFile);
         response.setStatusCode(HttpStatus.OK);
         response.addHeader("Content-Type", mediaType);
@@ -226,7 +226,7 @@ public class ResourceHandler implements RequestHandler {
      * @param response      - current response.
      * @param fileMediaType - current file media type.
      */
-    public void addCachingHeader(HttpRequest request, HttpResponse response, String fileMediaType) {
+    public void addCachingHeader(BaseHttpRequest request, BaseHttpResponse response, String fileMediaType) {
         if (!this.isCachingEnabled() || this.hasCacheHeader(response)) {
             return;
         }
@@ -250,7 +250,7 @@ public class ResourceHandler implements RequestHandler {
      * @param response
      * @return
      */
-    private boolean hasCacheHeader(HttpResponse response) {
+    private boolean hasCacheHeader(BaseHttpResponse response) {
         return response.getHeaders().containsKey(RequestProcessor.CACHE_CONTROL_HEADER_NAME);
     }
 

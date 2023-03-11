@@ -2,7 +2,7 @@ package org.nampython.base.api;
 
 import java.util.Map;
 
-public interface HttpResponse {
+public interface BaseHttpResponse {
     void setStatusCode(HttpStatus statusCode);
     void setContent(String content);
     void setContent(byte[] content);

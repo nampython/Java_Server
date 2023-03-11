@@ -2,18 +2,18 @@ package org.nampython.base;
 
 
 import org.nampython.base.api.HttpCookie;
-import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.BaseHttpRequest;
 import org.nampython.base.api.HttpSession;
 import org.nampython.base.api.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
 
-public class HttpSoletRequestImpl implements HttpSoletRequest {
-    private final HttpRequest request;
+public class HttpRequestImpl implements HttpRequest {
+    private final BaseHttpRequest request;
     private String contextPath;
 
-    public HttpSoletRequestImpl(HttpRequest request) {
+    public HttpRequestImpl(BaseHttpRequest request) {
         this.request = request;
         this.setContextPath("");
     }

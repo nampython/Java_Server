@@ -1,9 +1,9 @@
 package org.nampython.base;
 
 
-import org.nampython.base.api.HttpRequest;
+import org.nampython.base.api.BaseHttpRequest;
 
-public interface HttpSoletRequest extends HttpRequest {
+public interface HttpRequest extends BaseHttpRequest {
 
     void setContextPath(String contextPath);
 

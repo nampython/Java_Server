@@ -4,8 +4,8 @@ package org.nampython.core.center;
 import com.cyecize.ioc.annotations.Autowired;
 import com.cyecize.ioc.annotations.Service;
 import org.nampython.base.*;
-import org.nampython.base.api.HttpRequest;
-import org.nampython.base.api.HttpResponse;
+import org.nampython.base.api.BaseHttpRequest;
+import org.nampython.base.api.BaseHttpResponse;
 import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
@@ -24,7 +24,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.nampython.core.SessionManagement.CONTENT_LENGTH_HEADER;
 
 /**
  *
@@ -58,8 +57,8 @@ public class Dispatcher implements RequestHandler {
     private DispatcherConfig<String> dispatcherConfig;
     private final boolean trackResources;
     private final String rootAppName;
-    private Map<String, HttpSolet> storageControllers;
-    private final Map<String, List<Class<HttpSolet>>> controllerClasses = new HashMap<>();
+    private Map<String, HttpHandler> storageControllers;
+    private final Map<String, List<Class<HttpHandler>>> controllerClasses = new HashMap<>();
     private List<String> applicationNames;
 
     @Autowired
@@ -81,9 +80,9 @@ public class Dispatcher implements RequestHandler {
 
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
-        final HttpSoletRequest request = new HttpSoletRequestImpl(sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class));
-        final HttpSoletResponse response = new HttpSoletResponseImpl(sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class));
-        final HttpSolet solet = this.findSoletCandidate(request);
+        final HttpRequest request = new HttpRequestImpl(sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, BaseHttpRequest.class));
+        final HttpResponse response = new HttpResponseImpl(sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, BaseHttpResponse.class));
+        final HttpHandler solet = this.findSoletCandidate(request);
 
         this.sessionManagement.initSessionIfExistent(request);
         if (solet == null || request.isResource() && !this.trackResources) {
@@ -119,15 +118,15 @@ public class Dispatcher implements RequestHandler {
      * @return
      * @throws IOException
      */
-    public Map<String, HttpSolet> loadApplications(DispatcherConfig<String> dispatcherConfig) throws ClassNotFoundException, RuntimeException {
+    public Map<String, HttpHandler> loadApplications(DispatcherConfig<String> dispatcherConfig) throws ClassNotFoundException, RuntimeException {
         try {
             this.dispatcherConfig = dispatcherConfig;
-            final Map<String, List<Class<HttpSolet>>> controllerClasses = this.findControllerClasses();
+            final Map<String, List<Class<HttpHandler>>> controllerClasses = this.findControllerClasses();
 
-            for (Map.Entry<String, List<Class<HttpSolet>>> entry : controllerClasses.entrySet()) {
+            for (Map.Entry<String, List<Class<HttpHandler>>> entry : controllerClasses.entrySet()) {
                 final String applicationName = entry.getKey();
                 this.makeAppAssetDir(PathUtil.appendPath(this.assetsDir, applicationName));
-                for (Class<HttpSolet> controllerClass : entry.getValue()) {
+                for (Class<HttpHandler> controllerClass : entry.getValue()) {
                     this.loadSolet(controllerClass, applicationName);
                 }
             }
@@ -142,7 +141,7 @@ public class Dispatcher implements RequestHandler {
      * @return
      * @throws ClassNotFoundException
      */
-    private Map<String, List<Class<HttpSolet>>> findControllerClasses() throws ClassNotFoundException {
+    private Map<String, List<Class<HttpHandler>>> findControllerClasses() throws ClassNotFoundException {
         File file = new File((String) this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY));
         String packageName = "";
         this.loadClass(file, packageName);
@@ -155,7 +154,7 @@ public class Dispatcher implements RequestHandler {
      * appended to the packageName.
      * <p>
      * If the file is file and the file name ends with .class, load it and check if the class
-     * is assignable from {@link HttpSolet}. If it is, add it to the map of solet classes.
+     * is assignable from {@link HttpHandler}. If it is, add it to the map of solet classes.
      */
     @SuppressWarnings("unchecked")
     private void loadClass(File currentFile, String packageName) throws ClassNotFoundException {
@@ -177,8 +176,8 @@ public class Dispatcher implements RequestHandler {
             }
             final String className = packageName + currentFile.getName().replace(".class", "").replace("/", ".");
             final Class<?> currentClassFile = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
-            if (BaseHttpSolet.class.isAssignableFrom(currentClassFile)) {
-                this.controllerClasses.get(this.rootAppName).add(((Class<HttpSolet>) currentClassFile));
+            if (BaseHttp.class.isAssignableFrom(currentClassFile)) {
+                this.controllerClasses.get(this.rootAppName).add(((Class<HttpHandler>) currentClassFile));
             }
         }
     }
@@ -191,14 +190,13 @@ public class Dispatcher implements RequestHandler {
         return Collections.singletonList(this.rootAppName);
     }
 
-    private boolean runSolet(HttpSolet solet, HttpSoletRequest request, HttpSoletResponse response) {
+    private boolean runSolet(HttpHandler solet, HttpRequest request, HttpResponse response) {
         try {
             solet.service(request, response);
             return solet.hasIntercepted();
         } catch (Exception ex) {
 //            this.loggingService.printStackTrace(ex);
         }
-
         return true;
     }
 
@@ -208,7 +206,7 @@ public class Dispatcher implements RequestHandler {
      * @param request
      * @return
      */
-    public HttpSolet findSoletCandidate(HttpSoletRequest request) {
+    public HttpHandler findSoletCandidate(HttpRequest request) {
         request.setContextPath(this.resolveCurrentRequestAppName(request));
         final String requestUrl = request.getRequestURL();
         final Pattern applicationRouteMatchPattern = Pattern.compile(Pattern.quote(request.getContextPath() + "\\/[a-zA-Z0-9]+\\/"));
@@ -230,7 +228,7 @@ public class Dispatcher implements RequestHandler {
         return null;
     }
 
-    private String resolveCurrentRequestAppName(HttpSoletRequest request) {
+    private String resolveCurrentRequestAppName(HttpRequest request) {
 //        for (String applicationName : this.applicationNames) {
 //            if (request.getRequestURL().startsWith(applicationName) && !applicationName.equals(this.rootAppName)) {
 //                return applicationName;
@@ -260,9 +258,9 @@ public class Dispatcher implements RequestHandler {
      * add the appName to the route.
      * Put the solet in a solet map with a key being the soletRoute.
      */
-    private void loadSolet(Class<HttpSolet> soletClass, String applicationName) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        final HttpSolet controllerInstance = soletClass.getDeclaredConstructor().newInstance();
-        final WebSolet controllerAnnotation = this.getSoletAnnotation(controllerInstance.getClass());
+    private void loadSolet(Class<HttpHandler> soletClass, String applicationName) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        final HttpHandler controllerInstance = soletClass.getDeclaredConstructor().newInstance();
+        final Controller controllerAnnotation = this.getSoletAnnotation(controllerInstance.getClass());
         if (controllerAnnotation == null) {
             throw new IllegalArgumentException(String.format(MISSING_SOLET_ANNOTATION_FORMAT, soletClass.getName()));
         } else {
@@ -310,12 +308,12 @@ public class Dispatcher implements RequestHandler {
     }
 
     /**
-     * Recursive method for getting {@link WebSolet} annotation from a given class.
-     * Recursion is required since only parent class could have {@link WebSolet} annotation
+     * Recursive method for getting {@link Controller} annotation from a given class.
+     * Recursion is required since only parent class could have {@link Controller} annotation
      * and not the child.
      */
-    private WebSolet getSoletAnnotation(Class<?> soletClass) {
-        final WebSolet controller = soletClass.getAnnotation(WebSolet.class);
+    private Controller getSoletAnnotation(Class<?> soletClass) {
+        final Controller controller = soletClass.getAnnotation(Controller.class);
         if (controller == null && soletClass.getSuperclass() != null) {
             return this.getSoletAnnotation(soletClass.getSuperclass());
         }

@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HttpRequestImpl implements HttpRequest {
+public class BaseHttpRequestImpl implements BaseHttpRequest {
     private String method;
     private String requestURL;
     private HttpSession session;
@@ -17,7 +17,7 @@ public class HttpRequestImpl implements HttpRequest {
     private final Map<String, List<String>> bodyParametersAsList;
     private final Map<String, HttpCookie> cookies;
 
-    public HttpRequestImpl() {
+    public BaseHttpRequestImpl() {
         this.multipartFiles = new ArrayList<>();
         this.headers = new HashMap<>();
         this.queryParameters = new HashMap<>();

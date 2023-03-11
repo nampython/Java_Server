@@ -1,14 +1,14 @@
 package org.nampython.base;
 
-
 import static org.nampython.base.api.HttpStatus.NOT_IMPLEMENTED;
 
-public abstract class BaseHttpSolet implements HttpSolet {
+
+public abstract class BaseHttp implements HttpHandler {
     private boolean isInitialized;
     private boolean hasIntercepted;
     private SoletConfig soletConfig;
 
-    protected BaseHttpSolet() {
+    protected BaseHttp() {
         this.isInitialized = false;
         this.setHasIntercepted(true);
     }
@@ -23,19 +23,39 @@ public abstract class BaseHttpSolet implements HttpSolet {
         return this.soletConfig.getAttribute(SoletConstants.SOLET_CONFIG_APP_NAME_PREFIX) + route;
     }
 
-    protected void doGet(HttpSoletRequest request, HttpSoletResponse response) throws Exception {
+    /**
+     * The GET method requests a representation of the specified resource. Requests using GET should only retrieve data.
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
+    protected void doGet(HttpRequest request, HttpResponse response) {
         this.functionalityNotFound(request, response);
     }
 
-    protected void doPost(HttpSoletRequest request, HttpSoletResponse response) throws Exception {
+    /**
+     * The POST method submits an entity to the specified resource, often causing a change in state or side effects on the server.
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
+    protected void doPost(HttpRequest request, HttpResponse response) {
         this.functionalityNotFound(request, response);
     }
 
-    protected void doPut(HttpSoletRequest request, HttpSoletResponse response) throws Exception {
+    /**
+     * The PUT method replaces all current representations of the target resource with the request payload.
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
+    protected void doPut(HttpRequest request, HttpResponse response) {
         this.functionalityNotFound(request, response);
     }
 
-    protected void doDelete(HttpSoletRequest request, HttpSoletResponse response) throws Exception {
+    /**
+     * The DELETE method deletes the specified resource.
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
+    protected void doDelete(HttpRequest request, HttpResponse response) {
         this.functionalityNotFound(request, response);
     }
 
@@ -65,8 +85,13 @@ public abstract class BaseHttpSolet implements HttpSolet {
         return this.soletConfig;
     }
 
+    /**
+     *
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
     @Override
-    public void service(HttpSoletRequest request, HttpSoletResponse response) throws Exception {
+    public void service(HttpRequest request, HttpResponse response) {
         switch (request.getMethod().toUpperCase()) {
             case "GET":
                 this.doGet(request, response);
@@ -86,7 +111,12 @@ public abstract class BaseHttpSolet implements HttpSolet {
         }
     }
 
-    private void functionalityNotFound(HttpSoletRequest request, HttpSoletResponse response) {
+    /**
+     *
+     * @param request {@link HttpRequest}
+     * @param response {@link HttpResponse}
+     */
+    private void functionalityNotFound(HttpRequest request, HttpResponse response) {
         response.setStatusCode(NOT_IMPLEMENTED);
         response.addHeader("Content-Type", "text/html");
         response.setContent((String.format(
