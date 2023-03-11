@@ -7,7 +7,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
+/**
+ *
+ */
 @Service
 public class FormDataParserDefault implements FormDataParser {
     public static final String RAW_BODY_PARAM_NAME = "rawBodyText";
@@ -38,7 +42,6 @@ public class FormDataParserDefault implements FormDataParser {
 //        if (this.showRequestLog) {
 //            this.loggingService.info(body);
 //        }
-
         return body;
     }
 
@@ -48,16 +51,22 @@ public class FormDataParserDefault implements FormDataParser {
      * @param request
      */
     private void setBodyParameters(String requestBody, HttpRequest request) {
-        if (requestBody == null || requestBody.isEmpty() || requestBody.trim().isEmpty()) {
-            return;
-        }
-        request.addBodyParameter(RAW_BODY_PARAM_NAME, requestBody);
-        final String[] bodyParamPairs = requestBody.split("&");
-        for (String bodyParamPair : bodyParamPairs) {
-            final String[] tokens = bodyParamPair.split("=");
-            final String paramKey = decode(tokens[0]);
-            final String value = tokens.length > 1 ? decode(tokens[1]) : null;
-            request.addBodyParameter(paramKey, value);
+        if (requestBody != null && !Objects.requireNonNull(requestBody).isEmpty() && !requestBody.trim().isEmpty()) {
+            String[] bodyParamPairs = requestBody.split("&");
+            for (String bodyParamPair : bodyParamPairs) {
+                String[] tokens = bodyParamPair.split("=");
+                final String paramKey = decode(tokens[0]);
+                final String value = tokens.length > 1 ? decode(tokens[1]) : null;
+                request.addBodyParameter(paramKey, value);
+            }
+//            request.addBodyParameter(RAW_BODY_PARAM_NAME, requestBody);
+//            final String[] bodyParamPairs = requestBody.split("&");
+//            for (String bodyParamPair : bodyParamPairs) {
+//                final String[] tokens = bodyParamPair.split("=");
+//                final String paramKey = decode(tokens[0]);
+//                final String value = tokens.length > 1 ? decode(tokens[1]) : null;
+//                request.addBodyParameter(paramKey, value);
+//            }
         }
     }
 

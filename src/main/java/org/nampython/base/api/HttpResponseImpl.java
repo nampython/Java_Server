@@ -2,6 +2,7 @@ package org.nampython.base.api;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -12,9 +13,7 @@ public class HttpResponseImpl implements HttpResponse {
     private static final String CONTENT_TYPE = "Content-Type";
     private HttpStatus statusCode;
     private byte[] content;
-
     private final Map<String, String> headers;
-
     private final Map<String, HttpCookie> cookies;
 
     public HttpResponseImpl() {
@@ -68,14 +67,15 @@ public class HttpResponseImpl implements HttpResponse {
         return this.content;
     }
 
+    /**
+     * @return
+     */
     @Override
     public byte[] getBytes() {
         final byte[] headers = this.getHeaderString().getBytes();
         final byte[] result = new byte[headers.length + this.getContent().length];
-
         System.arraycopy(headers, 0, result, 0, headers.length);
         System.arraycopy(this.getContent(), 0, result, headers.length, this.getContent().length);
-
         return result;
     }
 
@@ -91,32 +91,23 @@ public class HttpResponseImpl implements HttpResponse {
      */
     private String getHeaderString() {
         final StringBuilder result = new StringBuilder()
-                .append(HttpStatus.getResponseLine(
-                        Objects.requireNonNullElse(this.getStatusCode(), HttpStatus.OK).getStatusCode())
-                )
+                .append(HttpStatus.getResponseLine(Objects.requireNonNullElse(this.getStatusCode(), HttpStatus.OK).getStatusCode()))
                 .append(LINE_SEPARATOR);
-
         this.headers.put(CONTENT_TYPE, this.resolveCharset(this.headers.getOrDefault(CONTENT_TYPE, "text/html")));
 
-        for (Map.Entry<String, String> header : this.getHeaders().entrySet()) {
-            result.append(header.getKey()).append(": ").append(header.getValue()).append(LINE_SEPARATOR);
+        for (Map.Entry<String, String> next : this.getHeaders().entrySet()) {
+            result.append(next.getKey()).append(": ").append(next.getValue()).append(LINE_SEPARATOR);
         }
-
         if (!this.cookies.isEmpty()) {
             for (HttpCookie cookie : this.cookies.values()) {
                 result.append("Set-Cookie: ").append(cookie.toRFCString()).append(LINE_SEPARATOR);
             }
         }
-
         result.append(LINE_SEPARATOR);
         return result.toString();
     }
 
     private String resolveCharset(String contentType) {
-        if (contentType == null || contentType.contains("charset")) {
-            return contentType;
-        } else {
-            return contentType + "; charset=utf8";
-        }
+        return contentType != null && !contentType.contains("charset") ? contentType + "; charset=utf8" : contentType;
     }
 }

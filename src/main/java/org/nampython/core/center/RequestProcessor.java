@@ -11,7 +11,6 @@ import org.nampython.core.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpCookie;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -42,17 +41,19 @@ public class RequestProcessor implements RequestHandler {
     }
 
     private final Map<FormDataParserProvider, FormDataParser> instanceProviderMap = new HashMap<>();
-    private final List<FormDataParser> formDataParsers;
     private final ConfigCenter configCenter;
     private final ErrorHandling errorHandling;
+    private final FormDataParser defaultFormDataParser;
+    private final FormDataParser multipartFormDataParser;
     private final int maxRequestSize;
 
     @Autowired
-    public RequestProcessor(List<FormDataParser> formDataParsers, ConfigCenter configCenter, ErrorHandling errorHandling) {
-        this.formDataParsers = formDataParsers;
+    public RequestProcessor(List<FormDataParser> formDataParsers, ConfigCenter configCenter, ErrorHandling errorHandling, FormDataParserDefault defaultFormDataParser, FormDataParserMultipart multipartFormDataParser) {
         this.configCenter = configCenter;
         this.maxRequestSize = configCenter.getConfigValue(ConfigValue.MAX_REQUEST_SIZE, int.class);
         this.errorHandling = errorHandling;
+        this.defaultFormDataParser = defaultFormDataParser;
+        this.multipartFormDataParser = multipartFormDataParser;
     }
 
     @Override
@@ -97,13 +98,14 @@ public class RequestProcessor implements RequestHandler {
             leftToRead -= bytesRead;
             bytesRead = Math.min(2048, inputStream.available());
         }
-
         buffer = null;
     }
 
     /**
-     * @param inputStream
-     * @return
+     * Parses the HTTP request produced by the given stream.
+     *
+     * @param inputStream producing a HTTP request
+     * @return HttpRequest
      */
     private HttpRequest parseHttpRequest(InputStream inputStream) {
         try {
@@ -118,8 +120,11 @@ public class RequestProcessor implements RequestHandler {
                 throw new RequestTooBigException(REQUEST_TOO_BIG_MSG, httpRequest.getContentLength());
             } else {
                 final String contentType = httpRequest.getContentType();
-                final FormDataParserProvider formDataParserProvider = FormDataParserProvider.findByContentType(contentType);
-                this.getParser(formDataParserProvider).parseBodyParams(inputStream, httpRequest);
+                if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
+                    this.multipartFormDataParser.parseBodyParams(inputStream, httpRequest);
+                } else {
+                    this.defaultFormDataParser.parseBodyParams(inputStream, httpRequest);
+                }
                 this.trimRequestPath(httpRequest);
                 return httpRequest;
             }
@@ -138,8 +143,14 @@ public class RequestProcessor implements RequestHandler {
     }
 
     /**
+     * Content-Length header is a number that indicates the size of the data in the body of the request or response in bytes.
+     * The HTTP body begins immediately after the first blank line, after the initial line and headers.
+     * The actual length of the content sent over the network may differ from the size of the data in the body
+     * because servers can compress the data before sending it.
+     *
      * @param inputStream
-     * @param requestMetadata
+     * @param request
+     * @throws IOException
      */
     private void handlerContentLength(InputStream inputStream, HttpRequest request) throws IOException {
         if (request.getHeaders().get(CONTENT_LENGTH) != null) {
@@ -154,6 +165,7 @@ public class RequestProcessor implements RequestHandler {
      * The browser may store the cookie and send it back to the same server with later requests. Typically, an HTTP cookie is used to tell if
      * two requests come from the same browser—keeping a user logged in, for example.
      * It remembers stateful information for the stateless HTTP protocol.
+     *
      * @param httpRequest
      */
     private void handlerCookies(HttpRequest httpRequest) {
@@ -229,19 +241,19 @@ public class RequestProcessor implements RequestHandler {
      * @param provider
      * @return
      */
-    private FormDataParser getParser(FormDataParserProvider provider) {
-        if (this.instanceProviderMap.containsKey(provider)) {
-            return this.instanceProviderMap.get(provider);
-        }
-
-        final FormDataParser formDataParser = this.formDataParsers.stream()
-                .filter(parser -> provider.getParserType().isAssignableFrom(parser.getClass()))
-                .findFirst()
-                .orElseThrow(() -> new CannotParseRequestException(String.format(
-                        "Could not find %s form data parser", provider
-                )));
-        this.instanceProviderMap.put(provider, formDataParser);
-        return formDataParser;
+//    private FormDataParser getParser(FormDataParserProvider provider) {
+//        if (this.instanceProviderMap.containsKey(provider)) {
+//            return this.instanceProviderMap.get(provider);
+//        }
+//
+//        final FormDataParser formDataParser = this.formDataParsers.stream()
+//                .filter(parser -> provider.getParserType().isAssignableFrom(parser.getClass()))
+//                .findFirst()
+//                .orElseThrow(() -> new CannotParseRequestException(String.format(
+//                        "Could not find %s form data parser", provider
+//                )));
+//        this.instanceProviderMap.put(provider, formDataParser);
+//        return formDataParser;
 //        FormDataParser formDataParser = null;
 //        if (this.instanceProviderMap.containsKey(provider)) {
 //            return this.instanceProviderMap.get(provider);
@@ -257,7 +269,7 @@ public class RequestProcessor implements RequestHandler {
 //                }
 //            }
 //        }
-    }
+//    }
 
     /**
      * @param str

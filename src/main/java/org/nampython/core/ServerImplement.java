@@ -36,7 +36,6 @@ public class ServerImplement extends BaseServer {
         final ServerSocket serverSocket = new ServerSocket(this.port);
         serverSocket.setSoTimeout(SOCKET_TIMEOUT_MILLISECONDS);
         System.out.println(String.format(LISTENING_MESSAGE_FORMAT, this.port));
-
         while (true) {
             while (true) {
                 try {

@@ -10,7 +10,6 @@ public class PathUtil {
     public static String appendPath(String url, String path, String separator) {
         url = trimEndingSlashes(url);
         path = trimAllSlashes(path);
-
         return url + separator + path;
     }
 
@@ -18,7 +17,6 @@ public class PathUtil {
         if (str.endsWith("/") || str.endsWith("\\")) {
             return str.substring(0, str.length() - 1);
         }
-
         return str;
     }
 

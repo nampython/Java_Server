@@ -51,6 +51,11 @@ public class HttpRequestImpl implements HttpRequest {
         this.headers.put(header, value);
     }
 
+    /**
+     * Store body parameters after parsing http request from the client.
+     * @param parameter
+     * @param value
+     */
     @Override
     public void addBodyParameter(String parameter, String value) {
         this.bodyParameters.put(parameter, value);

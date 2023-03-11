@@ -1,6 +1,7 @@
 package org.nampython.core.center;
 
 import com.cyecize.ioc.annotations.Autowired;
+import com.cyecize.ioc.annotations.PostConstruct;
 import com.cyecize.ioc.annotations.Service;
 import org.nampython.base.api.HttpRequest;
 import org.nampython.base.api.HttpResponse;
@@ -8,29 +9,41 @@ import org.nampython.base.api.HttpStatus;
 import org.nampython.config.ConfigCenter;
 import org.nampython.config.ConfigValue;
 import org.nampython.core.*;
+import org.nampython.support.PathUtil;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  *
  */
 @Service
 public class ResourceHandler implements RequestHandler {
+    private static final String RESOURCE_NOT_FOUND_FORMAT = "Resource \"%s\" not found!";
     private final ConfigCenter configCenter;
-    private final ResourceLocation resourceLocation;
     private final TikaBase tikaBase;
     private Map<String, String> mediaTypeCacheMap;
-
+    private String pathToAssetsFormat;
+    private String pathToWebappsFormat;
+    private final List<String> appNames;
 
     @Autowired
-    public ResourceHandler(ConfigCenter configCenter, ResourceLocation resourceLocation, TikaBase tikaBase) {
+    public ResourceHandler(ConfigCenter configCenter, TikaBase tikaBase) {
         this.configCenter = configCenter;
-        this.resourceLocation = resourceLocation;
         this.tikaBase = tikaBase;
+        this.appNames = new ArrayList<>();
     }
 
+    @PostConstruct
+    public void initialize() {
+        this.appNames.addAll(List.of(this.configCenter.getConfigParamString(ConfigValue.MAIN_APP_JAR_NAME)));
+        this.initDirectories();
+    }
+
+    /**
+     *
+     */
     @Override
     public void init() {
         this.mediaTypeCacheMap = CachingExpressingParser.parseExpression(this.configCenter.getConfigValue(ConfigValue.RESOURCE_CACHING_EXPRESSION));
@@ -47,9 +60,8 @@ public class ResourceHandler implements RequestHandler {
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
         final HttpRequest httpRequest = sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class);
         final HttpResponse httpResponse = sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class);
-
         try {
-            final File resource = this.resourceLocation.locateResource(httpRequest.getRequestURL());
+            final File resource = this.locateResource(httpRequest.getRequestURL());
             try (final FileInputStream fileInputStream = new FileInputStream(resource)) {
                 this.handleResourceFoundResponse(httpRequest, httpResponse, resource, fileInputStream.available());
                 outputStream.write(httpResponse.getBytes());
@@ -57,10 +69,111 @@ public class ResourceHandler implements RequestHandler {
             }
             return true;
         } catch (ResourceNotFoundException ignored) {
+            return false;
         }
-        return false;
     }
 
+    /**
+     * Looks for a resource in the webapps or in the assets directory.
+     *
+     * @param requestURL - path to resource.
+     * @return file which name matches the request url.
+     * @throws ResourceNotFoundException if the resource file cannot be found.
+     */
+    private File locateResource(String requestURL) throws ResourceNotFoundException {
+        final String currentRequestAppName = this.getAppNameForRequest(requestURL);
+        requestURL = requestURL.replaceFirst(Pattern.quote("/" + currentRequestAppName), "");
+        File file = new File(this.createWebappsResourceDir(requestURL, currentRequestAppName));
+        if (!file.exists() || file.isDirectory()) {
+            file = new File(this.createAssetsResourceDir(requestURL, currentRequestAppName));
+        }
+        if (file.exists() && !file.isDirectory()) {
+            return file;
+        }
+        throw new ResourceNotFoundException(String.format(RESOURCE_NOT_FOUND_FORMAT, requestURL));
+    }
+
+    /**
+     *
+     * @param requestURL
+     * @param appName
+     * @return
+     */
+    private String createWebappsResourceDir(String requestURL, String appName) {
+        return String.format(this.pathToWebappsFormat, PathUtil.trimAllSlashes(appName), PathUtil.trimAllSlashes(requestURL)
+        );
+    }
+
+    /**
+     *
+     * @param requestURL
+     * @param appName
+     * @return
+     */
+    private String createAssetsResourceDir(String requestURL, String appName) {
+        return String.format(
+                this.pathToAssetsFormat,
+                PathUtil.trimAllSlashes(appName),
+                PathUtil.trimAllSlashes(requestURL)
+        );
+    }
+
+    /**
+     * @param requestURL
+     * @return
+     */
+    private String getAppNameForRequest(String requestURL) {
+        Iterator<String> appNames = this.appNames.iterator();
+        String appName;
+        do {
+            if (!appNames.hasNext()) {
+                return this.configCenter.getConfigValue(ConfigValue.MAIN_APP_JAR_NAME);
+            }
+            appName = appNames.next();
+        } while (!requestURL.startsWith("/" + appName));
+        return appName;
+//        for (String appName : this.appNames) {
+//            if (requestURL.startsWith("/" + appName)) {
+//                return appName;
+//            }
+//        }
+//        return this.configCenter.getConfigValue(ConfigValue.MAIN_APP_JAR_NAME);
+    }
+
+    /**
+     *
+     */
+    private void initDirectories() {
+        final String workingDir = this.configCenter.getConfigValue(ConfigValue.JAVACHE_WORKING_DIRECTORY);
+        this.getPathToAssets(workingDir);
+        this.getPathToWebApps(workingDir);
+    }
+
+    /**
+     *
+     * @param workingDir
+     */
+    private void getPathToAssets(String workingDir) {
+        String pathToAssets = PathUtil.appendPath(workingDir, this.configCenter.getConfigValue(ConfigValue.ASSETS_DIR_NAME)
+        );
+        pathToAssets = PathUtil.appendPath(pathToAssets, "%s");
+        pathToAssets = PathUtil.appendPath(pathToAssets, "%s");
+        this.pathToAssetsFormat = pathToAssets;
+    }
+
+
+    /**
+     *
+     * @param workingDir
+     */
+    private void getPathToWebApps(String workingDir) {
+        String pathToWebApps = PathUtil.appendPath(workingDir, this.configCenter.getConfigValue(ConfigValue.WEB_APPS_DIR_NAME));
+        pathToWebApps = PathUtil.appendPath(pathToWebApps, "%s");
+        pathToWebApps = PathUtil.appendPath(pathToWebApps, this.configCenter.getConfigValue(ConfigValue.APP_COMPILE_OUTPUT_DIR_NAME));
+        pathToWebApps = PathUtil.appendPath(pathToWebApps, this.configCenter.getConfigValue(ConfigValue.APP_RESOURCES_DIR_NAME));
+        pathToWebApps = PathUtil.appendPath(pathToWebApps, "%s");
+        this.pathToWebappsFormat = pathToWebApps;
+    }
 
     /**
      * @param inputStream
@@ -70,7 +183,6 @@ public class ResourceHandler implements RequestHandler {
     private void transferStream(InputStream inputStream, OutputStream outputStream) throws IOException {
         final byte[] buffer = new byte[2048];
         int read;
-
         while ((read = inputStream.read(buffer)) != -1) {
             outputStream.write(buffer, 0, read);
         }
@@ -88,6 +200,9 @@ public class ResourceHandler implements RequestHandler {
     /**
      * Populates {@link HttpResponse} with found resource.
      * Adds necessary headers that are required in order to transfer a resource using the HTTP protocol.
+     * In this case I use Tika library that is used for document type detection and content extraction from various file formats.
+     * To know more about Tika library, accesses via link <a href="https://tika.apache.org/">https://tika.apache.org/</a>
+     * to research and know more about this library
      */
     private void handleResourceFoundResponse(HttpRequest request, HttpResponse response, File resourceFile, long fileSize) throws IOException {
         final String mediaType = this.tikaBase.detect(resourceFile);
@@ -141,7 +256,9 @@ public class ResourceHandler implements RequestHandler {
 
 
     /**
-     *
+     * "image/png, image/gif, image/jpeg @ max-age=120 & text/css @ max-age=84600, public & application/javascript @ max-age=7200";
+     * Cache-control is an HTTP header used to specify browser caching policies in both client requests and server responses.
+     * Policies include how a resource is cached, where it’s cached and its maximum age before expiring
      */
     static class CachingExpressingParser {
         public static Map<String, String> parseExpression(String expressionString) {
@@ -152,7 +269,6 @@ public class ResourceHandler implements RequestHandler {
                     final String[] tokens = expression.split("\\s*@\\s*");
                     final String headerValue = tokens[1].trim();
                     final String[] mediaTypes = tokens[0].split(",\\s*");
-
                     for (String mediaType : mediaTypes) {
                         mediaTypeCacheMap.put(mediaType.trim(), headerValue);
                     }

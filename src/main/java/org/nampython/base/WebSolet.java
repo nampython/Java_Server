@@ -13,6 +13,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface WebSolet {
     String value() default "";
-
     boolean loadOnStartUp() default true;
 }
