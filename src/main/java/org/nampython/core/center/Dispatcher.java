@@ -74,7 +74,6 @@ public class Dispatcher implements RequestHandler {
         this.rootAppName = configCenter.getConfigValue(ConfigValue.MAIN_APP_JAR_NAME);
         this.controllerClasses.put(this.rootAppName, new ArrayList());
 
-
         this.isRootDir = true;
         this.loadLibraries();
         this.trackResources = configCenter.getConfigValue(ConfigValue.BROCCOLINA_TRACK_RESOURCES, boolean.class);
@@ -83,30 +82,24 @@ public class Dispatcher implements RequestHandler {
     @Override
     public boolean handleRequest(InputStream inputStream, OutputStream outputStream, RequestHandlerShareData sharedData) throws IOException {
         final HttpSoletRequest request = new HttpSoletRequestImpl(sharedData.getObject(RequestHandlerShareData.HTTP_REQUEST, HttpRequest.class));
-        final HttpSoletResponse response = new HttpSoletResponseImpl(sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class), outputStream);
-        if (request.isResource() && !this.trackResources) {
-            return false;
-        }
-        this.sessionManagement.initSessionIfExistent(request);
+        final HttpSoletResponse response = new HttpSoletResponseImpl(sharedData.getObject(RequestHandlerShareData.HTTP_RESPONSE, HttpResponse.class));
         final HttpSolet solet = this.findSoletCandidate(request);
-        if (solet == null || !this.runSolet(solet, request, response)) {
+
+        this.sessionManagement.initSessionIfExistent(request);
+        if (solet == null || request.isResource() && !this.trackResources) {
             return false;
+        } else if (!this.runSolet(solet, request, response)) {
+            return false;
+        } else {
+            if (response.getStatusCode() == null) {
+                response.setStatusCode(HttpStatus.OK);
+            }
+            this.sessionManagement.sendSessionIfExistent(request, response);
+            this.sessionManagement.clearInvalidSessions();
+            outputStream.write(response.getBytes());
+            return true;
         }
-        if (response.getStatusCode() == null) {
-            response.setStatusCode(HttpStatus.OK);
-        }
-        if (!response.getHeaders().containsKey(CONTENT_LENGTH_HEADER)
-                && response.getContent() != null
-                && response.getContent().length > 0) {
-            response.addHeader(CONTENT_LENGTH_HEADER, response.getContent().length + "");
-        }
-        this.sessionManagement.sendSessionIfExistent(request, response);
-        this.sessionManagement.clearInvalidSessions();
-        response.getOutputStream().write();
-        return false;
     }
-
-
 
     /**
      *
@@ -210,41 +203,50 @@ public class Dispatcher implements RequestHandler {
     }
 
 
+    /**
+     *
+     * @param request
+     * @return
+     */
     public HttpSolet findSoletCandidate(HttpSoletRequest request) {
         request.setContextPath(this.resolveCurrentRequestAppName(request));
-
         final String requestUrl = request.getRequestURL();
-        final Pattern applicationRouteMatchPattern = Pattern
-                .compile(Pattern.quote(request.getContextPath() + "\\/[a-zA-Z0-9]+\\/"));
-
+        final Pattern applicationRouteMatchPattern = Pattern.compile(Pattern.quote(request.getContextPath() + "\\/[a-zA-Z0-9]+\\/"));
         final Matcher applicationRouteMatcher = applicationRouteMatchPattern.matcher(requestUrl);
 
         if (this.storageControllers.containsKey(requestUrl)) {
             return this.storageControllers.get(requestUrl);
-        }
-
-        if (applicationRouteMatcher.find()) {
-            String applicationRoute = applicationRouteMatcher.group(0) + "*";
-            if (this.storageControllers.containsKey(applicationRoute)) {
-                return this.storageControllers.get(applicationRoute);
+        } else {
+            if (applicationRouteMatcher.find()) {
+                String applicationRoute = applicationRouteMatcher.group(0) + "*";
+                if (this.storageControllers.containsKey(applicationRoute)) {
+                    return this.storageControllers.get(applicationRoute);
+                }
             }
         }
-
         if (this.storageControllers.containsKey(request.getContextPath() + "/*")) {
             return this.storageControllers.get(request.getContextPath() + "/*");
         }
-
         return null;
     }
 
     private String resolveCurrentRequestAppName(HttpSoletRequest request) {
-        for (String applicationName : this.applicationNames) {
-            if (request.getRequestURL().startsWith(applicationName) && !applicationName.equals(this.rootAppName)) {
-                return applicationName;
+//        for (String applicationName : this.applicationNames) {
+//            if (request.getRequestURL().startsWith(applicationName) && !applicationName.equals(this.rootAppName)) {
+//                return applicationName;
+//            }
+//        }
+//
+//        return "";
+        Iterator<String> iterator = this.applicationNames.iterator();
+        String applicationName;
+        do {
+            if (!iterator.hasNext()) {
+                return "";
             }
-        }
-
-        return "";
+            applicationName = (String)iterator.next();
+        } while(!request.getRequestURL().startsWith(applicationName) || applicationName.equals(this.rootAppName));
+        return applicationName;
     }
 
     @Override

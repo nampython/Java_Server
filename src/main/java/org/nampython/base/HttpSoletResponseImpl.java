@@ -11,12 +11,9 @@ public class HttpSoletResponseImpl implements HttpSoletResponse {
 
     private final HttpResponse response;
 
-    private final SoletOutputStream soletOutputStream;
 
-    public HttpSoletResponseImpl(HttpResponse response,
-                                 OutputStream clientOutputStream) {
+    public HttpSoletResponseImpl(HttpResponse response) {
         this.response = response;
-        this.soletOutputStream = new SoletOutputStream(clientOutputStream, this);
     }
 
     @Override
@@ -24,11 +21,6 @@ public class HttpSoletResponseImpl implements HttpSoletResponse {
         this.response.setStatusCode(HttpStatus.SEE_OTHER);
         this.response.setContent(location);
         this.response.addHeader("Location", location);
-    }
-
-    @Override
-    public SoletOutputStream getOutputStream() {
-        return this.soletOutputStream;
     }
 
     @Override

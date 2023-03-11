@@ -10,7 +10,6 @@ import java.util.Date;
 
 @Service
 public class SessionManagement {
-    public static final long SESSION_EXPIRE_DAYS = 1;
     public static final String CONTENT_LENGTH_HEADER = "Content-Length";
     private static final String SESSION_COOKIE_NAME = "JAVACHE_SESSION_ID";
     private final HttpSessionStorage sessionStorage;
@@ -49,24 +48,19 @@ public class SessionManagement {
      * If the session is invalid, removes the cookie.
      */
     public void sendSessionIfExistent(HttpSoletRequest request, HttpResponse response) {
-        if (request.getSession() == null) {
-            return;
-        }
-
-        if (this.sessionStorage.getSession(request.getSession().getId()) == null) {
-            this.sessionStorage.addSession(request.getSession());
-        }
-
-        if (request.getSession().isValid()) {
-            final HttpCookie cookie = new HttpCookieImpl(this.getSessionCookieName(request), request.getSession().getId());
-
-            final String expires = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now().plusDays(SESSION_EXPIRE_DAYS));
-
-            cookie.setPath("/; expires=" + expires);
-
-            response.addCookie(cookie);
-        } else {
-            response.addCookie(SESSION_COOKIE_NAME, "removed; expires=" + new Date(0).toString());
+        if (request.getSession() != null) {
+            if (this.sessionStorage.getSession(request.getSession().getId()) == null) {
+                this.sessionStorage.addSession(request.getSession());
+            }
+            if (request.getSession().isValid()) {
+                HttpCookie cookie = new HttpCookieImpl(this.getSessionCookieName(request), request.getSession().getId());
+                String expires = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now().plusDays(1L));
+                cookie.setPath("/; expires=" + expires);
+                response.addCookie(cookie);
+            } else {
+                Date var10002 = new Date(0L);
+                response.addCookie(SESSION_COOKIE_NAME, "removed; expires=" + var10002.toString());
+            }
         }
     }
 
